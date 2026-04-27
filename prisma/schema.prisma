@@ -3,13 +3,13 @@
 // Run `npm run db:push` for first deploy or `npm run db:migrate` for tracked migrations.
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ───────────────────────── Auth ─────────────────────────

@@ -33,6 +33,11 @@ yarn-error.log*
 .env*
 !.env.example
 
+# personal notes / secrets
+tyt.md
+*.secrets.md
+.tmp-*
+
 # vercel
 .vercel
 
