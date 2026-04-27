@@ -1,0 +1,298 @@
+// FitStreak production schema
+// Postgres on Neon, Prisma adapter for Auth.js v5.
+// Run `npm run db:push` for first deploy or `npm run db:migrate` for tracked migrations.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Auth ─────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified DateTime?
+  name          String?
+  username      String?  @unique
+  image         String?
+  passwordHash  String?
+  locale        String   @default("ru")
+
+  // Onboarding flag — true after body metrics are filled
+  onboarded     Boolean  @default(false)
+
+  // Body metrics (denormalised for fast access)
+  gender        Gender?
+  age           Int?
+  heightCm      Int?
+  weightKg      Int?
+
+  fitnessLevel  FitnessLevel?
+  goal          Goal?
+
+  // Aggregated stats (kept in sync via Activity API)
+  totalEnergy   Int      @default(0)
+  totalXp       Int      @default(0)
+  level         Int      @default(1)
+  currentStreak Int      @default(0)
+  bestStreak    Int      @default(0)
+  lastActiveAt  DateTime?
+
+  // Reminder prefs
+  reminders     ReminderConfig?
+
+  // Plan / subscription
+  plan          Plan     @default(FREE)
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  activity      ActivityRecord[]
+  participations ChallengeParticipant[]
+  achievements  UserAchievement[]
+  follows       Follow[] @relation("Follower")
+  followers     Follow[] @relation("Following")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([totalEnergy])
+  @@index([level])
+  @@index([totalXp])
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ───────────────────────── Activity ─────────────────────────
+
+model ActivityRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  exerciseId   String
+  amount       Int
+  energy       Int
+  xp           Int
+  kcal         Int
+  source       ActivitySource @default(MANUAL)
+  recordedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+  @@index([recordedAt])
+  @@index([userId, exerciseId])
+}
+
+enum ActivitySource {
+  MANUAL
+  IMPORT
+  MOBILE
+  HEALTHKIT
+  GOOGLE_FIT
+}
+
+// ───────────────────────── Challenges ─────────────────────────
+
+model Challenge {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  titleRu      String
+  titleEn      String
+  descRu       String   @db.Text
+  descEn       String   @db.Text
+  metric       ChallengeMetric
+  exerciseId   String?
+  goal         Int
+  durationDays Int
+  difficulty   ChallengeDifficulty @default(MEDIUM)
+  rewardXp     Int      @default(0)
+  rewardEnergy Int      @default(0)
+  participantsCount Int @default(0)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  participants ChallengeParticipant[]
+
+  @@index([isFeatured])
+}
+
+enum ChallengeMetric {
+  REPS
+  KM
+  MINUTES
+  ENERGY
+  STREAK_DAYS
+  DAYS_ACTIVE
+}
+
+enum ChallengeDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  ELITE
+}
+
+model ChallengeParticipant {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeId String
+  progress    Int      @default(0)
+  completed   Boolean  @default(false)
+  joinedAt    DateTime @default(now())
+  completedAt DateTime?
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+  @@index([challengeId, progress])
+}
+
+// ───────────────────────── Reminders ─────────────────────────
+
+model ReminderConfig {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  enabled     Boolean  @default(true)
+  morningTime String   @default("08:00")
+  eveningTime String   @default("21:00")
+  weekendsOff Boolean  @default(false)
+  smartMode   Boolean  @default(true)
+  pushEnabled Boolean  @default(true)
+  emailEnabled Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────── Achievements ─────────────────────────
+
+model Achievement {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  titleRu     String
+  titleEn     String
+  descRu      String
+  descEn      String
+  icon        String
+  tier        AchievementTier @default(BRONZE)
+  rewardXp    Int      @default(0)
+
+  users UserAchievement[]
+}
+
+enum AchievementTier {
+  BRONZE
+  SILVER
+  GOLD
+  ELITE
+  LEGEND
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+// ───────────────────────── Social ─────────────────────────
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+// ───────────────────────── Waitlist ─────────────────────────
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String
+  plan      Plan
+  source    String?
+  locale    String   @default("ru")
+  createdAt DateTime @default(now())
+
+  @@unique([email, plan])
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum FitnessLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ATHLETE
+}
+
+enum Goal {
+  HEALTH
+  WEIGHT_LOSS
+  STAMINA
+  MUSCLE
+  COMPETITIVE
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+}

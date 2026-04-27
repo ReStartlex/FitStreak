@@ -1,0 +1,17 @@
+import NextAuth from "next-auth";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+
+import { db } from "@/lib/db";
+import { authConfig } from "./config";
+import { buildProviders } from "./providers";
+
+export const {
+  handlers,
+  auth,
+  signIn,
+  signOut,
+} = NextAuth({
+  adapter: PrismaAdapter(db),
+  ...authConfig,
+  providers: buildProviders(),
+});
