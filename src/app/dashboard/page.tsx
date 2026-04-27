@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { startOfToday, getTodayTotals, userToBodyMetrics } from "@/lib/api/activity-service";
 import { getLevelInfo } from "@/lib/leveling";
+import { calcDailyGoal } from "@/lib/goals";
 
 import { DashboardClient } from "./client";
 
@@ -73,13 +74,13 @@ export default async function DashboardPage() {
       : null;
 
   const levelInfo = getLevelInfo(user.totalXp);
-  const dailyGoal = (() => {
-    if (user.fitnessLevel === "BEGINNER") return 80;
-    if (user.fitnessLevel === "INTERMEDIATE") return 130;
-    if (user.fitnessLevel === "ADVANCED") return 180;
-    if (user.fitnessLevel === "ATHLETE") return 240;
-    return 130;
-  })();
+  const dailyGoal = calcDailyGoal({
+    fitnessLevel: user.fitnessLevel,
+    age: user.age,
+    gender: user.gender,
+    goal: user.goal,
+    weightKg: user.weightKg,
+  });
 
   return (
     <DashboardClient
@@ -94,6 +95,7 @@ export default async function DashboardPage() {
         totalEnergy: user.totalEnergy,
         level: user.level,
         dailyGoal,
+        streakFreezes: user.streakFreezes,
         bodyMetrics: userToBodyMetrics(user) ?? null,
       }}
       initialToday={todayTotals}

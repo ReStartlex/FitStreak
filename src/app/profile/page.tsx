@@ -92,6 +92,7 @@ export default async function ProfilePage() {
         totalEnergy: user.totalEnergy,
         level: user.level,
         rank: energyRank + 1,
+        streakFreezes: user.streakFreezes,
       }}
       bodyMetrics={{
         gender: user.gender,

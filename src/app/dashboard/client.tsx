@@ -19,6 +19,10 @@ import { AchievementsGrid } from "@/components/dashboard/AchievementsGrid";
 import { MiniLeaderboard } from "@/components/dashboard/MiniLeaderboard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import {
+  CelebrationOverlay,
+  type CelebrationKind,
+} from "@/components/celebrations/CelebrationOverlay";
 import { useI18n } from "@/lib/i18n/provider";
 import { divisionName, getDivision } from "@/lib/ranks";
 import type { LevelInfo } from "@/lib/leveling";
@@ -34,6 +38,7 @@ interface UserCtx {
   totalEnergy: number;
   level: number;
   dailyGoal: number;
+  streakFreezes: number;
   bodyMetrics: unknown;
 }
 
@@ -72,6 +77,8 @@ export function DashboardClient({
   const [level, setLevel] = React.useState(user.level);
   const [streak, setStreak] = React.useState(user.currentStreak);
   const [bestStreak, setBestStreak] = React.useState(user.bestStreak);
+  const [streakFreezes, setStreakFreezes] = React.useState(user.streakFreezes);
+  const [celebration, setCelebration] = React.useState<CelebrationKind | null>(null);
   const [recentRecords, setRecentRecords] = React.useState<FeedRecord[]>(
     initialRecords,
   );
@@ -79,6 +86,10 @@ export function DashboardClient({
   const [pStats, setPStats] = React.useState(initialStats);
 
   const division = getDivision(level);
+
+  // We use a ref to prevent the goal-reached celebration from firing
+  // on every render once the user is already over the goal.
+  const goalCelebratedRef = React.useRef(initialToday.energy >= user.dailyGoal);
 
   async function handleAdd(
     exerciseId: string,
@@ -120,9 +131,22 @@ export function DashboardClient({
         levelUp: boolean;
         currentStreak: number;
         bestStreak: number;
+        streakFreezes: number;
+        freezeUsed: boolean;
       };
+      achievements?: Array<{
+        slug: string;
+        titleRu: string;
+        titleEn: string;
+        icon: string;
+        tier: string;
+        rewardXp: number;
+        count: number;
+        isNew: boolean;
+      }>;
     };
 
+    const previousLevel = level;
     setToday({
       energy: json.totals.todayEnergy,
       xp: json.totals.todayXp,
@@ -133,6 +157,28 @@ export function DashboardClient({
     setLevel(json.totals.level);
     setStreak(json.totals.currentStreak);
     setBestStreak(json.totals.bestStreak);
+    setStreakFreezes(json.totals.streakFreezes);
+
+    // Celebrations — choose the most impactful event of the three.
+    if (json.totals.level > previousLevel) {
+      setCelebration({ type: "level-up", level: json.totals.level });
+    } else if (
+      !goalCelebratedRef.current &&
+      json.totals.todayEnergy >= user.dailyGoal &&
+      user.dailyGoal > 0
+    ) {
+      goalCelebratedRef.current = true;
+      setCelebration({
+        type: "goal-reached",
+        goal: user.dailyGoal,
+        energy: json.totals.todayEnergy,
+      });
+    } else if (json.totals.freezeUsed) {
+      setCelebration({
+        type: "freeze-used",
+        remaining: json.totals.streakFreezes,
+      });
+    }
 
     const newRecord: FeedRecord = {
       id: json.record.id,
@@ -218,13 +264,25 @@ export function DashboardClient({
 
           <div className="lg:col-span-4 flex flex-col gap-5">
             <LevelCard totalXp={totalXp} todayXp={today.xp} />
-            <StreakCard current={streak} best={bestStreak} />
+            <StreakCard
+              current={streak}
+              best={bestStreak}
+              freezes={streakFreezes}
+              onFreezeUsed={(remaining) => {
+                setStreakFreezes(remaining);
+                setCelebration({ type: "freeze-used", remaining });
+              }}
+            />
             <MiniLeaderboard myUserId={user.id} />
             <ActivityFeed records={recentRecords} />
           </div>
         </div>
       </main>
       <Footer />
+      <CelebrationOverlay
+        event={celebration}
+        onClose={() => setCelebration(null)}
+      />
     </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, Flame, Target, Trophy, Zap } from "lucide-react";
+import { Activity, Flame, Snowflake, Target, Trophy, Zap } from "lucide-react";
 
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { LevelCard } from "@/components/dashboard/LevelCard";
+import { AchievementsGrid } from "@/components/dashboard/AchievementsGrid";
 import { BodyMetricsCard, type BodyMetricsValue } from "@/components/profile/BodyMetricsCard";
 import { AnalyticsCard, type AnalyticsData } from "@/components/profile/AnalyticsCard";
 import { useI18n } from "@/lib/i18n/provider";
@@ -30,6 +31,7 @@ interface UserCtx {
   totalEnergy: number;
   level: number;
   rank: number;
+  streakFreezes: number;
 }
 
 interface Props {
@@ -120,7 +122,7 @@ export function ProfileClient({
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-4 mt-5">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5 mt-5">
           <StatBox
             icon={<Zap className="size-4 text-lime" />}
             label={t.scoring.energyScore}
@@ -148,6 +150,21 @@ export function ProfileClient({
             suffix="%"
             sub={locale === "ru" ? "за неделю" : "this week"}
           />
+          <StatBox
+            icon={<Snowflake className="size-4" style={{ color: "#7de3ff" }} />}
+            label={t.streak.freezeTitle}
+            value={user.streakFreezes}
+            suffix={locale === "ru" ? "шт" : "left"}
+            sub={
+              user.streakFreezes > 0
+                ? locale === "ru"
+                  ? "Защити серию"
+                  : "Protect your streak"
+                : locale === "ru"
+                  ? "Получай новые с уровнями"
+                  : "Earn more with levels"
+            }
+          />
         </div>
 
         <div className="mt-5">
@@ -156,6 +173,10 @@ export function ProfileClient({
 
         <div className="mt-5">
           <Heatmap weeks={20} data={heatmap} />
+        </div>
+
+        <div className="mt-5">
+          <AchievementsGrid />
         </div>
 
         {stats.favouriteExerciseId && (

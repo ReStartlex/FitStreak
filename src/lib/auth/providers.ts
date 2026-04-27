@@ -1,4 +1,5 @@
 import type { Provider } from "next-auth/providers";
+import type { OAuthConfig } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import Yandex from "next-auth/providers/yandex";
@@ -55,22 +56,31 @@ export function buildProviders(): Provider[] {
     );
   }
   if (env.oauth.yandex) {
-    providers.push(
-      Yandex({
-        clientId: env.AUTH_YANDEX_ID,
-        clientSecret: env.AUTH_YANDEX_SECRET,
-        allowDangerousEmailAccountLinking: true,
-      }),
-    );
+    const yandex = Yandex({
+      clientId: env.AUTH_YANDEX_ID,
+      clientSecret: env.AUTH_YANDEX_SECRET,
+      allowDangerousEmailAccountLinking: true,
+    }) as OAuthConfig<Record<string, unknown>>;
+    // Override default scope (drops `login:avatar` which often isn't enabled
+    // on the app and triggers `invalid_scope` from Yandex). We only need
+    // login + email for account creation.
+    yandex.authorization = {
+      url: "https://oauth.yandex.ru/authorize",
+      params: { scope: "login:info login:email" },
+    };
+    providers.push(yandex);
   }
   if (env.oauth.vk) {
-    providers.push(
-      VK({
-        clientId: env.AUTH_VK_ID,
-        clientSecret: env.AUTH_VK_SECRET,
-        allowDangerousEmailAccountLinking: true,
-      }),
-    );
+    const vk = VK({
+      clientId: env.AUTH_VK_ID,
+      clientSecret: env.AUTH_VK_SECRET,
+      allowDangerousEmailAccountLinking: true,
+    }) as OAuthConfig<Record<string, unknown>>;
+    // VK's classic OAuth (`oauth.vk.com/authorize`) does not support PKCE,
+    // it returns `invalid_request: Code challenge method is unsupported`
+    // when Auth.js sends the default `["pkce", "state"]` checks.
+    vk.checks = ["state"];
+    providers.push(vk);
   }
 
   return providers;

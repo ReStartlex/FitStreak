@@ -229,7 +229,7 @@ export function OnboardingClient({ initial }: { initial: InitialState }) {
                           ["BEGINNER", t.bodyMetrics.beginner],
                           ["INTERMEDIATE", t.bodyMetrics.intermediate],
                           ["ADVANCED", t.bodyMetrics.advanced],
-                          ["ATHLETE", "Athlete"],
+                          ["ATHLETE", t.bodyMetrics.athlete],
                         ] as const
                       ).map(([id, label]) => (
                         <Choice

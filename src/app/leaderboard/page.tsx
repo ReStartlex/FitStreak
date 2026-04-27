@@ -198,6 +198,15 @@ export default function LeaderboardPage() {
                         <div className="text-xs text-ink-muted number-tabular">
                           {formatNumber(valueOf(row), locale)} {valueLabel}
                         </div>
+                        {row.streak != null && row.streak > 0 && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-accent-orange">
+                            <span aria-hidden>🔥</span>
+                            <span className="number-tabular">{row.streak}</span>
+                            <span className="text-ink-muted">
+                              {locale === "ru" ? "дн" : "d"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div
                         className={cn(
@@ -355,13 +364,24 @@ function LeaderRowItem({
           </span>
         </div>
       </div>
-      <div className="hidden sm:flex flex-col items-end">
-        {row.streak != null && (
-          <div className="text-[10px] text-ink-muted uppercase tracking-widest">
-            🔥 {row.streak}
-          </div>
-        )}
-      </div>
+      {row.streak != null && row.streak > 0 && (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 px-2 h-7 rounded-full border text-xs font-medium tabular-nums",
+            row.streak >= 100
+              ? "border-accent-rose/50 bg-accent-rose/15 text-accent-rose"
+              : row.streak >= 30
+                ? "border-accent-orange/50 bg-accent-orange/15 text-accent-orange"
+                : row.streak >= 7
+                  ? "border-lime/50 bg-lime/12 text-lime"
+                  : "border-line bg-white/[0.04] text-ink-dim",
+          )}
+          title={t.streak.title}
+        >
+          <span aria-hidden>🔥</span>
+          {row.streak}
+        </span>
+      )}
       <div className="text-right min-w-[88px]">
         <div className="font-display font-bold number-tabular">
           {formatNumber(value, locale)}

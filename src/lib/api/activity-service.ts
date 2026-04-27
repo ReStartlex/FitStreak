@@ -5,6 +5,10 @@ import { calcEnergyScore, calcXP, calcKcal } from "@/lib/scoring";
 import { getLevelInfo } from "@/lib/leveling";
 import type { BodyMetrics } from "@/lib/mock/user";
 import { validateAmount } from "./anti-cheat";
+import {
+  evaluateAchievementsAfterActivity,
+  type GrantedAchievement,
+} from "./achievements";
 
 export function userToBodyMetrics(
   user: Pick<User, "gender" | "age" | "heightCm" | "weightKg">,
@@ -64,7 +68,12 @@ export interface LogActivityResult {
     levelUp: boolean;
     currentStreak: number;
     bestStreak: number;
+    streakFreezes: number;
+    /** True when an auto-freeze was consumed in this log call. */
+    freezeUsed: boolean;
   };
+  /** Achievements granted (or re-earned) by this single activity. */
+  achievements: GrantedAchievement[];
 }
 
 export interface LogActivityError {
@@ -120,19 +129,46 @@ export async function logActivity(
 
   const lastActive = user.lastActiveAt ?? null;
   let nextStreak = user.currentStreak;
+  let freezeUsed = false;
+  let nextStreakFreezes = user.streakFreezes;
+
   if (!lastActive) {
     nextStreak = 1;
   } else if (sameDay(lastActive, new Date())) {
+    // Already logged today — streak unchanged.
     nextStreak = Math.max(1, user.currentStreak);
   } else if (sameDay(lastActive, startOfYesterday(new Date()))) {
+    // Logged yesterday — straight increment.
     nextStreak = user.currentStreak + 1;
   } else {
-    nextStreak = 1;
+    // Gap of one or more missed days — try to spend exactly ONE freeze
+    // to bridge a 1-day gap (the user missed yesterday but is back today).
+    const yesterday = startOfYesterday(new Date());
+    const dayBeforeYesterday = startOfYesterday(yesterday);
+    const onlyOneMissed = sameDay(lastActive, dayBeforeYesterday);
+    if (onlyOneMissed && user.streakFreezes > 0 && user.currentStreak > 0) {
+      nextStreak = user.currentStreak + 1;
+      nextStreakFreezes = user.streakFreezes - 1;
+      freezeUsed = true;
+    } else {
+      nextStreak = 1;
+    }
   }
 
   const newTotalXp = user.totalXp + xp;
   const newTotalEnergy = user.totalEnergy + energy;
   const newLevel = getLevelInfo(newTotalXp).level;
+
+  // Reward: +1 freeze per level gained, capped at 5 total (free tier).
+  const levelsGained = Math.max(0, newLevel - user.level);
+  const FREEZE_CAP = 5;
+  const earnedFreezes = Math.min(
+    levelsGained,
+    Math.max(0, FREEZE_CAP - nextStreakFreezes),
+  );
+  if (earnedFreezes > 0) {
+    nextStreakFreezes += earnedFreezes;
+  }
 
   const [record, updatedUser] = await db.$transaction([
     db.activityRecord.create({
@@ -163,6 +199,11 @@ export async function logActivity(
         currentStreak: nextStreak,
         bestStreak: Math.max(user.bestStreak, nextStreak),
         lastActiveAt: new Date(),
+        streakFreezes: nextStreakFreezes,
+        ...(freezeUsed ? { lastFreezeUsedAt: new Date() } : {}),
+        ...(earnedFreezes > 0
+          ? { freezesEarnedTotal: user.freezesEarnedTotal + earnedFreezes }
+          : {}),
       },
       select: {
         totalEnergy: true,
@@ -170,6 +211,7 @@ export async function logActivity(
         level: true,
         currentStreak: true,
         bestStreak: true,
+        streakFreezes: true,
       },
     }),
   ]);
@@ -177,6 +219,47 @@ export async function logActivity(
   const todayEnergy = (totalsBeforeToday._sum.energy ?? 0) + energy;
   const todayXp = (totalsBeforeToday._sum.xp ?? 0) + xp;
   const todayKcal = (totalsBeforeToday._sum.kcal ?? 0) + kcal;
+
+  // Evaluate achievement triggers (lifetime totals, streak milestones,
+  // level milestones). Reward XP is automatically deposited inside.
+  const exerciseAgg = await db.activityRecord.aggregate({
+    where: { userId, exerciseId },
+    _sum: { amount: true },
+  });
+  const totalAmountForExercise = exerciseAgg._sum.amount ?? amount;
+
+  const achievements = await evaluateAchievementsAfterActivity({
+    userId,
+    exerciseId,
+    amountToday: amount + amountToday,
+    totalAmountForExercise,
+    newStreak: updatedUser.currentStreak,
+    newLevel: updatedUser.level,
+    previousLevel,
+  });
+
+  // Achievement reward XP may have changed totalXp; refresh once.
+  let finalTotalXp = updatedUser.totalXp;
+  let finalLevel = updatedUser.level;
+  if (achievements.some((a) => a.isNew && a.rewardXp > 0)) {
+    const refreshed = await db.user.findUnique({
+      where: { id: userId },
+      select: { totalXp: true, level: true },
+    });
+    if (refreshed) {
+      finalTotalXp = refreshed.totalXp;
+      const lvl = getLevelInfo(refreshed.totalXp).level;
+      if (lvl !== refreshed.level) {
+        await db.user.update({
+          where: { id: userId },
+          data: { level: lvl },
+        });
+        finalLevel = lvl;
+      } else {
+        finalLevel = refreshed.level;
+      }
+    }
+  }
 
   return {
     ok: true,
@@ -186,12 +269,15 @@ export async function logActivity(
       todayXp,
       todayKcal,
       totalEnergy: updatedUser.totalEnergy,
-      totalXp: updatedUser.totalXp,
-      level: updatedUser.level,
-      levelUp: updatedUser.level > previousLevel,
+      totalXp: finalTotalXp,
+      level: finalLevel,
+      levelUp: finalLevel > previousLevel,
       currentStreak: updatedUser.currentStreak,
       bestStreak: updatedUser.bestStreak,
+      streakFreezes: updatedUser.streakFreezes,
+      freezeUsed,
     },
+    achievements,
   };
 }
 

@@ -44,6 +44,11 @@ model User {
   bestStreak    Int      @default(0)
   lastActiveAt  DateTime?
 
+  // Streak protection (Duolingo-style freezes)
+  streakFreezes      Int      @default(2)
+  lastFreezeUsedAt   DateTime?
+  freezesEarnedTotal Int      @default(2)
+
   // Reminder prefs
   reminders     ReminderConfig?
 
@@ -229,10 +234,12 @@ enum AchievementTier {
 }
 
 model UserAchievement {
-  id            String   @id @default(cuid())
-  userId        String
-  achievementId String
-  unlockedAt    DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  achievementId   String
+  count           Int      @default(1)
+  unlockedAt      DateTime @default(now())
+  lastEarnedAt    DateTime @default(now())
 
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)

@@ -265,12 +265,14 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
             FitStreak
           </span>
           <h2 className="font-display text-display-lg font-bold mt-5 leading-[1.05]">
-            {locale === "ru" ? "Серия дней. Каждый." : "Streak. Every day."}
+            {locale === "ru"
+              ? "Двигайся каждый день — и серия растёт."
+              : "Move every day — and your streak grows."}
           </h2>
           <p className="text-ink-dim mt-4 max-w-md">
             {locale === "ru"
-              ? "Простой трекер активности с челленджами и рейтингами. Один тап — и день засчитан."
-              : "A simple activity tracker with challenges and leaderboards. One tap and the day counts."}
+              ? "Простой трекер активности с челленджами и рейтингами. Один тап — и день засчитан, серия не разорвана."
+              : "A simple activity tracker with challenges and leaderboards. One tap and the day counts — your streak stays alive."}
           </p>
         </div>
       </aside>
