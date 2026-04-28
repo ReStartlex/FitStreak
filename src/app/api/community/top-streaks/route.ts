@@ -15,7 +15,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const users = await db.user.findMany({
-      where: { currentStreak: { gt: 0 } },
+      where: {
+        currentStreak: { gt: 0 },
+        showOnLeaderboard: true,
+        isPublic: true,
+      },
       orderBy: [{ currentStreak: "desc" }, { totalXp: "desc" }],
       take: 5,
       select: {

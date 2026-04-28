@@ -40,7 +40,12 @@ export async function GET(request: NextRequest) {
       ? await db.user.findUnique({ where: { id: session.user.id } })
       : null;
 
-    const userFilter: Prisma.UserWhereInput = {};
+    // Always honour the user-controlled "Show on leaderboard" flag.
+    // The signed-in user themselves is exempt so they always see
+    // their own rank, even when hidden globally.
+    const userFilter: Prisma.UserWhereInput = me?.id
+      ? { OR: [{ showOnLeaderboard: true }, { id: me.id }] }
+      : { showOnLeaderboard: true };
     if (scope === "men") userFilter.gender = "MALE";
     if (scope === "women") userFilter.gender = "FEMALE";
     if (scope === "age" && me?.age) {

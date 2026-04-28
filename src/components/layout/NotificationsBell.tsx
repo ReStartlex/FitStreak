@@ -83,7 +83,17 @@ export function NotificationsBell() {
     if (status !== "authenticated") return;
     fetchNotifs();
     const tid = window.setInterval(fetchNotifs, POLL_MS);
-    return () => window.clearInterval(tid);
+    const onFocus = () => fetchNotifs();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchNotifs();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(tid);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [status, fetchNotifs]);
 
   React.useEffect(() => {

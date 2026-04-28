@@ -35,6 +35,8 @@ export default async function SettingsPage() {
       level: true,
       totalXp: true,
       reminders: true,
+      isPublic: true,
+      showOnLeaderboard: true,
     },
   });
   if (!user) redirect("/signin");
@@ -57,6 +59,8 @@ export default async function SettingsPage() {
           bestStreak: user.bestStreak,
           level: user.level,
           totalXp: user.totalXp,
+          isPublic: user.isPublic,
+          showOnLeaderboard: user.showOnLeaderboard,
           reminders: user.reminders
             ? {
                 enabled: user.reminders.enabled,

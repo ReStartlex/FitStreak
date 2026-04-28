@@ -19,6 +19,8 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM: z.string().optional(),
 
+  CRON_SECRET: z.string().optional(),
+
   ENABLE_OAUTH_GOOGLE: z
     .union([z.literal("true"), z.literal("false")])
     .default("true"),

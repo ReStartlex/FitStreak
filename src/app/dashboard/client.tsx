@@ -22,6 +22,7 @@ import { StreakWarning } from "@/components/dashboard/StreakWarning";
 import { ShareTodayButton } from "@/components/dashboard/ShareTodayButton";
 import { FriendsFeed } from "@/components/dashboard/FriendsFeed";
 import { EnergyTrend } from "@/components/dashboard/EnergyTrend";
+import { PersonalRecordsCard } from "@/components/dashboard/PersonalRecordsCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -281,6 +282,7 @@ export function DashboardClient({
             <DailyTip />
             <EnergyTrend data={heatmap} goal={user.dailyGoal} days={30} />
             <Heatmap weeks={16} data={heatmap} />
+            <PersonalRecordsCard />
             <PersonalStats data={pStats} />
             <AchievementsGrid limit={8} />
           </div>

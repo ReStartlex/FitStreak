@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { UserList } from "@/components/social/UserList";
 
 interface Params {
@@ -27,11 +28,14 @@ export default async function FollowingPage({
   params: Promise<Params>;
 }) {
   const { username } = await params;
+  const session = await auth();
+  const me = session?.user?.id ?? null;
   const target = await db.user.findUnique({
     where: { username: username.toLowerCase() },
-    select: { id: true, name: true, username: true },
+    select: { id: true, name: true, username: true, isPublic: true },
   });
   if (!target) notFound();
+  if (!target.isPublic && me !== target.id) notFound();
 
   const rows = await db.follow.findMany({
     where: { followerId: target.id },

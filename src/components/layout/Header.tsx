@@ -222,6 +222,11 @@ export function Header() {
       {open && (
         <div className="md:hidden border-t border-line bg-bg/95 backdrop-blur-2xl">
           <div className="container py-4 flex flex-col gap-1">
+            {isAuthed && (
+              <div className="mb-3">
+                <UserSearch compact />
+              </div>
+            )}
             {links.map((l) => (
               <Link
                 key={l.href}

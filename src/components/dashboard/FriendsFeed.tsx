@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Users, Flame } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { Reactions } from "@/components/dashboard/Reactions";
 import { useI18n } from "@/lib/i18n/provider";
 import { EXERCISES, exerciseUnitLabel } from "@/lib/mock/exercises";
 
@@ -135,41 +136,55 @@ export function FriendsFeed() {
               transition={{ duration: 0.2, delay: i * 0.02 }}
               className="rounded-xl hover:bg-white/[0.03] px-2 py-2"
             >
-              <Link
-                href={
-                  it.user.username ? `/u/${it.user.username}` : "/leaderboard"
-                }
-                className="flex items-center gap-3"
-              >
-                <Avatar
-                  name={it.user.name}
-                  src={it.user.image ?? undefined}
-                  size={36}
-                  tone={it.user.currentStreak >= 30 ? "lime" : "default"}
-                />
+              <div className="flex items-start gap-3">
+                <Link
+                  href={
+                    it.user.username
+                      ? `/u/${it.user.username}`
+                      : "/leaderboard"
+                  }
+                  className="shrink-0"
+                >
+                  <Avatar
+                    name={it.user.name}
+                    src={it.user.image ?? undefined}
+                    size={36}
+                    tone={it.user.currentStreak >= 30 ? "lime" : "default"}
+                  />
+                </Link>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm">
-                    <span className="font-medium">{it.user.name}</span>{" "}
-                    <span className="text-ink-dim">
-                      +{it.amount} {unit} · {exName}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-ink-muted flex items-center gap-2">
-                    <span>{relTime(it.recordedAt, locale)}</span>
-                    <span className="text-lime/80 number-tabular">
-                      +{it.energy} ES
-                    </span>
-                    {it.user.currentStreak > 0 && (
-                      <span className="inline-flex items-center gap-0.5 text-accent-orange">
-                        <Flame className="size-3" />
-                        <span className="number-tabular">
-                          {it.user.currentStreak}
-                        </span>
+                  <Link
+                    href={
+                      it.user.username
+                        ? `/u/${it.user.username}`
+                        : "/leaderboard"
+                    }
+                    className="block"
+                  >
+                    <div className="text-sm">
+                      <span className="font-medium">{it.user.name}</span>{" "}
+                      <span className="text-ink-dim">
+                        +{it.amount} {unit} · {exName}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                    <div className="text-[11px] text-ink-muted flex items-center gap-2">
+                      <span>{relTime(it.recordedAt, locale)}</span>
+                      <span className="text-lime/80 number-tabular">
+                        +{it.energy} ES
+                      </span>
+                      {it.user.currentStreak > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-accent-orange">
+                          <Flame className="size-3" />
+                          <span className="number-tabular">
+                            {it.user.currentStreak}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                  <Reactions recordId={it.id} isOwn={false} />
                 </div>
-              </Link>
+              </div>
             </motion.li>
           );
         })}

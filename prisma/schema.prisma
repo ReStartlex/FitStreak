@@ -55,6 +55,11 @@ model User {
   // Plan / subscription
   plan          Plan     @default(FREE)
 
+  // Privacy: when false, profile and activity are not exposed publicly
+  // (still visible in leaderboard if user opted in; toggle is independent).
+  isPublic      Boolean  @default(true)
+  showOnLeaderboard Boolean @default(true)
+
   // Relations
   accounts      Account[]
   sessions      Session[]
@@ -65,6 +70,7 @@ model User {
   followers     Follow[] @relation("Following")
   notifications      Notification[] @relation("NotificationOwner")
   triggeredNotifs    Notification[] @relation("NotificationActor")
+  reactions     ActivityReaction[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -124,10 +130,33 @@ model ActivityRecord {
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions ActivityReaction[]
 
   @@index([userId, recordedAt])
   @@index([recordedAt])
   @@index([userId, exerciseId])
+}
+
+model ActivityReaction {
+  id         String   @id @default(cuid())
+  recordId   String
+  userId     String
+  emoji      ReactionEmoji
+  createdAt  DateTime @default(now())
+
+  record ActivityRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, userId, emoji])
+  @@index([recordId])
+}
+
+enum ReactionEmoji {
+  FIRE
+  CLAP
+  STRONG
+  HEART
+  ROCKET
 }
 
 enum ActivitySource {

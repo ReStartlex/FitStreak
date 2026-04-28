@@ -25,6 +25,8 @@ const schema = z.object({
     .or(z.literal("")),
   locale: z.enum(["ru", "en"]).optional(),
   image: z.string().url().max(500).optional().or(z.literal("")),
+  isPublic: z.boolean().optional(),
+  showOnLeaderboard: z.boolean().optional(),
 });
 
 export async function PATCH(request: NextRequest) {
@@ -49,6 +51,10 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.locale !== undefined) data.locale = parsed.data.locale;
     if (parsed.data.image !== undefined) {
       data.image = parsed.data.image === "" ? null : parsed.data.image;
+    }
+    if (parsed.data.isPublic !== undefined) data.isPublic = parsed.data.isPublic;
+    if (parsed.data.showOnLeaderboard !== undefined) {
+      data.showOnLeaderboard = parsed.data.showOnLeaderboard;
     }
     if (parsed.data.username !== undefined) {
       const u = parsed.data.username === "" ? null : parsed.data.username;

@@ -9,6 +9,9 @@ import {
   AtSign,
   Check,
   CheckCircle2,
+  Download,
+  Eye,
+  EyeOff,
   Loader2,
   LogOut,
   Mail,
@@ -36,6 +39,8 @@ interface UserCtx {
   bestStreak: number;
   level: number;
   totalXp: number;
+  isPublic: boolean;
+  showOnLeaderboard: boolean;
   reminders: {
     enabled: boolean;
     emailEnabled: boolean;
@@ -54,9 +59,30 @@ export function SettingsClient({ user }: { user: UserCtx }) {
   const [name, setName] = React.useState(user.name ?? "");
   const [username, setUsername] = React.useState(user.username ?? "");
   const [image, setImage] = React.useState(user.image ?? "");
+  const [isPublic, setIsPublic] = React.useState(user.isPublic);
+  const [showOnLb, setShowOnLb] = React.useState(user.showOnLeaderboard);
   const [savedAt, setSavedAt] = React.useState<number | null>(null);
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const togglePrivacy = async (
+    field: "isPublic" | "showOnLeaderboard",
+    next: boolean,
+  ) => {
+    if (field === "isPublic") setIsPublic(next);
+    else setShowOnLb(next);
+    try {
+      await fetch("/api/me/profile", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ [field]: next }),
+      });
+    } catch {
+      // revert on failure
+      if (field === "isPublic") setIsPublic(!next);
+      else setShowOnLb(!next);
+    }
+  };
 
   const onSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +303,65 @@ export function SettingsClient({ user }: { user: UserCtx }) {
         </div>
       </Section>
 
+      {/* Privacy */}
+      <Section
+        title={locale === "ru" ? "Приватность" : "Privacy"}
+        icon={
+          isPublic ? (
+            <Eye className="size-4 text-lime" />
+          ) : (
+            <EyeOff className="size-4 text-ink-muted" />
+          )
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <PrivacyRow
+            title={
+              locale === "ru" ? "Публичный профиль" : "Public profile"
+            }
+            description={
+              locale === "ru"
+                ? "Любой, у кого есть ссылка fitstreak.ru/u/username, может увидеть твой уровень, серию и активность."
+                : "Anyone with the fitstreak.ru/u/username link can see your level, streak and activity."
+            }
+            value={isPublic}
+            onChange={(v) => togglePrivacy("isPublic", v)}
+          />
+          <PrivacyRow
+            title={
+              locale === "ru"
+                ? "Показывать в лидерборде"
+                : "Show on leaderboard"
+            }
+            description={
+              locale === "ru"
+                ? "Сними галочку — и тебя не увидят в публичных рейтингах. Личная статистика останется доступной."
+                : "Uncheck to hide from public rankings. Your personal stats stay intact."
+            }
+            value={showOnLb}
+            onChange={(v) => togglePrivacy("showOnLeaderboard", v)}
+          />
+        </div>
+      </Section>
+
+      {/* Data export */}
+      <Section
+        title={locale === "ru" ? "Экспорт данных" : "Data export"}
+        icon={<Download className="size-4 text-violet-soft" />}
+      >
+        <p className="text-sm text-ink-dim mb-4">
+          {locale === "ru"
+            ? "Скачай все свои активности в формате CSV — пригодится для резервной копии или анализа."
+            : "Download every activity record as CSV — handy for backups or analysis."}
+        </p>
+        <a href="/api/me/export" download>
+          <Button variant="outline" className="gap-2" type="button">
+            <Download className="size-4" />
+            {locale === "ru" ? "Скачать CSV" : "Download CSV"}
+          </Button>
+        </a>
+      </Section>
+
       {/* Reminders quick-link */}
       <Section
         title={locale === "ru" ? "Напоминания" : "Reminders"}
@@ -423,6 +508,44 @@ function Field({
         />
       </div>
     </label>
+  );
+}
+
+function PrivacyRow({
+  title,
+  description,
+  value,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-line bg-white/[0.02] p-4">
+      <div className="min-w-0 flex-1">
+        <div className="font-medium">{title}</div>
+        <div className="text-xs text-ink-dim mt-1">{description}</div>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        onClick={() => onChange(!value)}
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+          value
+            ? "bg-lime/30 border-lime/50"
+            : "bg-white/[0.05] border-line"
+        }`}
+      >
+        <span
+          className={`absolute top-[2px] size-4 rounded-full transition-all ${
+            value ? "left-[22px] bg-lime shadow-glow" : "left-[2px] bg-ink-dim"
+          }`}
+        />
+      </button>
+    </div>
   );
 }
 

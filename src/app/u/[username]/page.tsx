@@ -56,9 +56,13 @@ export default async function PublicProfilePage({
       currentStreak: true,
       bestStreak: true,
       createdAt: true,
+      isPublic: true,
     },
   });
   if (!user) notFound();
+  // Privacy guard: if owner toggled the profile to private, only the
+  // owner themselves can access the page.
+  if (!user.isPublic && me !== user.id) notFound();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
