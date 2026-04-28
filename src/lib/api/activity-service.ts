@@ -73,6 +73,17 @@ export interface LogActivityResult {
     /** True when an auto-freeze was consumed in this log call. */
     freezeUsed: boolean;
   };
+  /**
+   * If this log beats the user's previous best single-entry for that
+   * exercise, this object holds the previous record. We require at
+   * least one prior record so the *first* time a user logs an
+   * exercise doesn't fire a "PR" celebration on its own.
+   */
+  personalRecord?: {
+    exerciseId: string;
+    previous: number;
+    next: number;
+  };
   /** Achievements granted (or re-earned) by this single activity. */
   achievements: GrantedAchievement[];
 }
@@ -122,6 +133,23 @@ export async function logActivity(
   const kcal = calcKcal(exerciseId, amount, metrics);
 
   const previousLevel = user.level;
+
+  // Find the previous best single-entry for this exercise *before*
+  // we insert the new record, so we can detect a PR without an N+1
+  // query later. We deliberately exclude tiny first entries from the
+  // celebration: only fire when there's a real prior record AND it
+  // was at least 30% smaller than the new one — keeps the overlay
+  // from popping every micro-improvement.
+  const prevBest = await db.activityRecord.aggregate({
+    where: { userId, exerciseId },
+    _max: { amount: true },
+    _count: { _all: true },
+  });
+  const previousBestAmount = prevBest._max.amount ?? 0;
+  const isPersonalRecord =
+    prevBest._count._all > 0 &&
+    amount > previousBestAmount &&
+    amount >= previousBestAmount * 1.3;
 
   const totalsBeforeToday = await db.activityRecord.aggregate({
     where: { userId, recordedAt: { gte: today } },
@@ -315,6 +343,13 @@ export async function logActivity(
       streakFreezes: updatedUser.streakFreezes,
       freezeUsed,
     },
+    personalRecord: isPersonalRecord
+      ? {
+          exerciseId,
+          previous: previousBestAmount,
+          next: amount,
+        }
+      : undefined,
     achievements,
   };
 }

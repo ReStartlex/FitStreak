@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Star } from "lucide-react";
 import { useI18n } from "@/lib/i18n/provider";
 import { EXERCISES, exerciseUnitLabel } from "@/lib/mock/exercises";
 import { calcEnergyScore, calcXP } from "@/lib/scoring";
 import { cn } from "@/lib/cn";
+import { useQuickLogHistory } from "@/lib/hooks/use-quick-log-history";
 
 interface QuickLogProps {
   onAdd: (
@@ -31,6 +32,7 @@ export function QuickLog({ onAdd, disabled }: QuickLogProps) {
   const { t, locale } = useI18n();
   const [pulses, setPulses] = React.useState<Pulse[]>([]);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
+  const { top: favourites, record: recordFavourite } = useQuickLogHistory();
 
   async function handleAdd(exId: string, amount: number, unit: string) {
     if (disabled || pendingId) return;
@@ -41,6 +43,8 @@ export function QuickLog({ onAdd, disabled }: QuickLogProps) {
     setPulses((p) => [...p, { id, amount, unit, energy, xp }]);
     try {
       await onAdd(exId, amount, energy, xp);
+      // Only record on success — failed taps shouldn't pollute history.
+      recordFavourite(exId, amount);
     } catch {
       setPulses((p) =>
         p.map((x) => (x.id === id ? { ...x, error: true } : x)),
@@ -67,6 +71,40 @@ export function QuickLog({ onAdd, disabled }: QuickLogProps) {
           </div>
         </div>
       </div>
+
+      {favourites.length >= 2 ? (
+        <div className="mb-4">
+          <div className="text-[10px] uppercase tracking-widest text-ink-muted mb-2 flex items-center gap-1.5">
+            <Star className="size-3 text-accent-orange" />
+            {locale === "ru" ? "Часто" : "Frequent"}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {favourites.map((f) => {
+              const ex = EXERCISES.find((e) => e.id === f.exerciseId);
+              if (!ex) return null;
+              const Icon = ex.icon;
+              const unit = exerciseUnitLabel(ex, locale);
+              return (
+                <motion.button
+                  key={`${f.exerciseId}:${f.amount}`}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => handleAdd(ex.id, f.amount, unit)}
+                  disabled={disabled || pendingId === ex.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white/[0.03] hover:bg-white/[0.06] px-3 py-1.5 text-xs disabled:opacity-50"
+                >
+                  <Icon className="size-3.5 text-ink-muted" />
+                  <span className="font-medium">+{f.amount}</span>
+                  <span className="text-ink-dim">{unit}</span>
+                  <span className="opacity-50">·</span>
+                  <span className="text-ink-dim truncate max-w-[80px]">
+                    {locale === "ru" ? ex.nameRu : ex.nameEn}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {EXERCISES.slice(0, 8).map((ex) => {

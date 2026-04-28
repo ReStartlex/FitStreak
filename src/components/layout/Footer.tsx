@@ -28,15 +28,15 @@ export function Footer() {
           </FooterCol>
 
           <FooterCol title={t.footer.company}>
-            <FooterLink href="#">{t.footer.about}</FooterLink>
-            <FooterLink href="#">{t.footer.blog}</FooterLink>
-            <FooterLink href="#">{t.footer.careers}</FooterLink>
-            <FooterLink href="#">{t.footer.contact}</FooterLink>
+            <FooterLink href="/about">{t.footer.about}</FooterLink>
+            <FooterLink href="/blog">{t.footer.blog}</FooterLink>
+            <FooterLink href="/careers">{t.footer.careers}</FooterLink>
+            <FooterLink href="/contact">{t.footer.contact}</FooterLink>
           </FooterCol>
 
           <FooterCol title={t.footer.legal}>
-            <FooterLink href="#">{t.footer.privacy}</FooterLink>
-            <FooterLink href="#">{t.footer.terms}</FooterLink>
+            <FooterLink href="/privacy">{t.footer.privacy}</FooterLink>
+            <FooterLink href="/terms">{t.footer.terms}</FooterLink>
           </FooterCol>
         </div>
       </div>

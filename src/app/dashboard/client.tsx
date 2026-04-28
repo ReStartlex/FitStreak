@@ -23,6 +23,7 @@ import { AchievementsGrid } from "@/components/dashboard/AchievementsGrid";
 import { MiniLeaderboard } from "@/components/dashboard/MiniLeaderboard";
 import { DailyTip } from "@/components/dashboard/DailyTip";
 import { StreakWarning } from "@/components/dashboard/StreakWarning";
+import { StreakSaveModal } from "@/components/dashboard/StreakSaveModal";
 import { ShareTodayButton } from "@/components/dashboard/ShareTodayButton";
 import { FriendsFeed } from "@/components/dashboard/FriendsFeed";
 import { FriendSuggestions } from "@/components/dashboard/FriendSuggestions";
@@ -150,6 +151,11 @@ export function DashboardClient({
         streakFreezes: number;
         freezeUsed: boolean;
       };
+      personalRecord?: {
+        exerciseId: string;
+        previous: number;
+        next: number;
+      };
       achievements?: Array<{
         slug: string;
         titleRu: string;
@@ -175,7 +181,8 @@ export function DashboardClient({
     setBestStreak(json.totals.bestStreak);
     setStreakFreezes(json.totals.streakFreezes);
 
-    // Celebrations — choose the most impactful event of the three.
+    // Celebrations — choose the most impactful event. Priority:
+    // level-up > daily goal reached > personal record > freeze-used.
     if (json.totals.level > previousLevel) {
       setCelebration({ type: "level-up", level: json.totals.level });
     } else if (
@@ -188,6 +195,13 @@ export function DashboardClient({
         type: "goal-reached",
         goal: user.dailyGoal,
         energy: json.totals.todayEnergy,
+      });
+    } else if (json.personalRecord) {
+      setCelebration({
+        type: "personal-record",
+        exerciseId: json.personalRecord.exerciseId,
+        previous: json.personalRecord.previous,
+        next: json.personalRecord.next,
       });
     } else if (json.totals.freezeUsed) {
       setCelebration({
@@ -336,9 +350,11 @@ export function DashboardClient({
               todayKcal={today.kcal}
               goal={user.dailyGoal}
             />
-            <QuickLog
-              onAdd={(exId, amt, e, x) => handleAdd(exId, amt, e, x)}
-            />
+            <div data-quick-log>
+              <QuickLog
+                onAdd={(exId, amt, e, x) => handleAdd(exId, amt, e, x)}
+              />
+            </div>
             <DailyTip />
             <InsightsCard />
             <EnergyTrend data={heatmap} goal={user.dailyGoal} days={30} />
@@ -374,6 +390,16 @@ export function DashboardClient({
       <CelebrationOverlay
         event={celebration}
         onClose={() => setCelebration(null)}
+      />
+      <StreakSaveModal
+        streak={streak}
+        todayEnergy={today.energy}
+        freezes={streakFreezes}
+        onFreezeUsed={(remaining) => {
+          setStreakFreezes(remaining);
+          setCelebration({ type: "freeze-used", remaining });
+          invalidateMyStreak();
+        }}
       />
       <OnboardingTour />
     </>

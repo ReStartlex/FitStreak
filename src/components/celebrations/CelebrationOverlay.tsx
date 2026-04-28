@@ -2,17 +2,19 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Flame, Sparkles, Trophy, Snowflake } from "lucide-react";
+import { Crown, Flame, Sparkles, Trophy, Snowflake, Medal } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n/provider";
 import { divisionName, getDivision } from "@/lib/ranks";
+import { EXERCISES, exerciseUnitLabel } from "@/lib/mock/exercises";
 
 export type CelebrationKind =
   | { type: "level-up"; level: number }
   | { type: "goal-reached"; goal: number; energy: number }
   | { type: "freeze-used"; remaining: number }
-  | { type: "freeze-earned"; remaining: number };
+  | { type: "freeze-earned"; remaining: number }
+  | { type: "personal-record"; exerciseId: string; previous: number; next: number };
 
 interface Props {
   event: CelebrationKind | null;
@@ -98,7 +100,13 @@ export function CelebrationOverlay({ event, onClose }: Props) {
         >
           <Confetti
             count={
-              event.type === "level-up" ? 110 : event.type === "goal-reached" ? 80 : 50
+              event.type === "level-up"
+                ? 110
+                : event.type === "goal-reached"
+                  ? 80
+                  : event.type === "personal-record"
+                    ? 90
+                    : 50
             }
           />
           <motion.div
@@ -121,6 +129,13 @@ export function CelebrationOverlay({ event, onClose }: Props) {
             )}
             {event.type === "freeze-earned" && (
               <FreezeEarnedBody remaining={event.remaining} />
+            )}
+            {event.type === "personal-record" && (
+              <PersonalRecordBody
+                exerciseId={event.exerciseId}
+                previous={event.previous}
+                next={event.next}
+              />
             )}
 
             <Button
@@ -248,4 +263,71 @@ function pluralize(n: number, one: string, few: string, many: string) {
   if (mod10 === 1 && mod100 !== 11) return one;
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
   return many;
+}
+
+function PersonalRecordBody({
+  exerciseId,
+  previous,
+  next,
+}: {
+  exerciseId: string;
+  previous: number;
+  next: number;
+}) {
+  const { locale } = useI18n();
+  const ex = EXERCISES.find((e) => e.id === exerciseId);
+  const unit = ex ? exerciseUnitLabel(ex, locale) : "";
+  const exName = ex ? (locale === "ru" ? ex.nameRu : ex.nameEn) : exerciseId;
+  const delta = next - previous;
+  const deltaPct =
+    previous > 0 ? Math.round((delta / previous) * 100) : 100;
+
+  return (
+    <div className="relative">
+      <motion.div
+        initial={{ scale: 0, rotate: -20 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 14 }}
+        className="size-24 mx-auto rounded-full grid place-items-center bg-accent-orange/15 border-2 border-accent-orange/60 shadow-glow"
+      >
+        <Medal className="size-12 text-accent-orange" strokeWidth={2.4} />
+      </motion.div>
+      <div className="text-xs uppercase tracking-[0.25em] text-ink-muted mt-5">
+        {locale === "ru" ? "Личный рекорд" : "Personal record"}
+      </div>
+      <h2 className="font-display text-3xl sm:text-4xl font-bold mt-1 leading-tight">
+        <span className="text-gradient-lime">
+          {locale === "ru" ? "Новый максимум!" : "New max!"}
+        </span>
+      </h2>
+      <div className="mt-3 text-sm text-ink-dim">
+        {locale === "ru"
+          ? `Ты побил свой рекорд по «${exName}»`
+          : `You beat your record in ${exName}`}
+      </div>
+      <div className="mt-5 flex items-center justify-center gap-3 text-sm">
+        <div className="flex flex-col items-center">
+          <div className="text-xs text-ink-muted">
+            {locale === "ru" ? "Было" : "Before"}
+          </div>
+          <div className="font-display text-2xl font-bold text-ink-muted/80 number-tabular line-through">
+            {previous} {unit}
+          </div>
+        </div>
+        <div className="text-2xl text-ink-dim">→</div>
+        <div className="flex flex-col items-center">
+          <div className="text-xs text-lime/80">
+            {locale === "ru" ? "Стало" : "Now"}
+          </div>
+          <div className="font-display text-3xl font-bold text-lime number-tabular">
+            {next} {unit}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 inline-flex items-center gap-2 chip">
+        <Trophy className="size-3.5 text-accent-orange" />
+        +{delta} {unit} (+{deltaPct}%)
+      </div>
+    </div>
+  );
 }
