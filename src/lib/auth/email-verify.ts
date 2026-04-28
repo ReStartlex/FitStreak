@@ -120,24 +120,51 @@ export async function sendVerificationEmail({
   const html = renderHtml({ code, locale, appUrl });
 
   if (!env.resend.enabled || !env.resend.apiKey) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        `[email-verify] Resend not configured, code for ${email}: ${code}`,
-      );
-    }
+    console.warn(
+      `[email-verify] Resend not configured. Code for ${email}: ${code}`,
+    );
     return;
   }
 
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(env.resend.apiKey);
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: env.resend.from,
       to: email,
       subject,
       text,
       html,
     });
+    if (result.error) {
+      // Common case: the configured `from` uses a domain that hasn't been
+      // verified in Resend, or the recipient is not the owner of the
+      // sandbox sender. Retry once with the universal sandbox sender so
+      // at least the developer behind the Resend account can finish the
+      // flow during setup. We log the original error so it's easy to
+      // diagnose in Vercel logs.
+      console.error(
+        "[email-verify] resend rejected:",
+        result.error.name,
+        result.error.message,
+      );
+      const isDomain =
+        /domain|verif|sender|forbidden|not verified/i.test(
+          result.error.message ?? "",
+        ) || result.error.name === "validation_error";
+      if (isDomain && env.resend.from !== "onboarding@resend.dev") {
+        console.warn(
+          "[email-verify] retrying with onboarding@resend.dev sandbox sender",
+        );
+        await resend.emails.send({
+          from: "FitStreak <onboarding@resend.dev>",
+          to: email,
+          subject,
+          text,
+          html,
+        });
+      }
+    }
   } catch (err) {
     console.error("[email-verify] failed to send", err);
   }

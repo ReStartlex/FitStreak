@@ -52,6 +52,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         rewardEnergy: challenge.rewardEnergy,
         participantsCount: challenge.participantsCount,
         isFeatured: challenge.isFeatured,
+        type: challenge.type,
+        createdById: challenge.createdById,
+        endsAt: challenge.endsAt?.toISOString() ?? null,
+        createdAt: challenge.createdAt.toISOString(),
         leaderboard: challenge.participants.map((p, i) => ({
           rank: i + 1,
           userId: p.userId,

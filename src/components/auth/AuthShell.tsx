@@ -301,6 +301,17 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
                 required
               />
 
+              {!isSignup && (
+                <div className="text-right -mt-1">
+                  <Link
+                    href={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                    className="text-xs text-ink-dim hover:text-lime"
+                  >
+                    {locale === "ru" ? "Забыли пароль?" : "Forgot password?"}
+                  </Link>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 size="lg"

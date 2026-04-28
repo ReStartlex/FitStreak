@@ -154,11 +154,23 @@ model Challenge {
   rewardEnergy Int      @default(0)
   participantsCount Int @default(0)
   isFeatured   Boolean  @default(false)
+  // PUBLIC = anyone can join, FRIENDS = invite-only (defer), PERSONAL = single owner
+  type         ChallengeType @default(PUBLIC)
+  createdById  String?
+  endsAt       DateTime?
   createdAt    DateTime @default(now())
 
   participants ChallengeParticipant[]
 
   @@index([isFeatured])
+  @@index([type])
+  @@index([createdById])
+}
+
+enum ChallengeType {
+  PUBLIC
+  FRIENDS
+  PERSONAL
 }
 
 enum ChallengeMetric {

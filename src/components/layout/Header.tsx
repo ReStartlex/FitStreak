@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, ArrowUpRight, LogOut, UserRound } from "lucide-react";
+import { Menu, X, ArrowUpRight, LogOut, Settings, UserRound } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
 import { LocaleSwitch } from "./LocaleSwitch";
@@ -134,6 +134,14 @@ export function Header() {
                     <UserRound className="size-4 text-ink-dim" />
                     {t.nav.profile}
                   </Link>
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2 px-3 h-11 text-sm hover:bg-white/[0.04]"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Settings className="size-4 text-ink-dim" />
+                    {t.nav.settings}
+                  </Link>
                   <div className="h-px bg-line" />
                   <button
                     type="button"
@@ -192,6 +200,11 @@ export function Header() {
                   <Link href="/profile">
                     <Button variant="ghost" size="sm">
                       {t.nav.profile}
+                    </Button>
+                  </Link>
+                  <Link href="/settings">
+                    <Button variant="ghost" size="sm">
+                      {t.nav.settings}
                     </Button>
                   </Link>
                   <Button

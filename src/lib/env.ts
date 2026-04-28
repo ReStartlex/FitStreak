@@ -63,7 +63,11 @@ export const env = {
   resend: {
     enabled: Boolean(data.RESEND_API_KEY),
     apiKey: data.RESEND_API_KEY,
-    from: data.RESEND_FROM ?? "FitStreak <noreply@fitstreak.app>",
+    // Default to Resend's shared sandbox sender — works without verifying
+    // a custom domain, but Resend will only deliver to the email that
+    // owns the API key. Set RESEND_FROM to "Brand <noreply@yourdomain.com>"
+    // and verify the domain in Resend to send to anyone.
+    from: data.RESEND_FROM ?? "FitStreak <onboarding@resend.dev>",
   },
 } as const;
 
