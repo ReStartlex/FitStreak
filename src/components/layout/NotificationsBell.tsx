@@ -2,7 +2,16 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, Check, Flame, Trophy, UserPlus, Award, Zap } from "lucide-react";
+import {
+  Bell,
+  Check,
+  Flame,
+  Trophy,
+  UserPlus,
+  Award,
+  Zap,
+  Crown,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useI18n } from "@/lib/i18n/provider";
@@ -17,6 +26,7 @@ type NotifType =
   | "CHALLENGE_DONE"
   | "CHALLENGE_INVITE"
   | "LEADERBOARD_OVERTAKE"
+  | "LEADERBOARD_TOP3"
   | "SYSTEM";
 
 interface NotifActor {
@@ -304,15 +314,47 @@ function describe(
         href: "/challenges",
         icon: <Trophy className="size-4 text-lime" />,
       };
-    case "LEADERBOARD_OVERTAKE":
+    case "LEADERBOARD_OVERTAKE": {
+      const scope = (n.data?.scope as string) ?? "";
+      const passers = (n.data?.passers as number) ?? 0;
+      if (scope === "global_streak") {
+        return {
+          primary:
+            locale === "ru" ? "Топ-3 серии обновился" : "Top-3 streak updated",
+          body:
+            locale === "ru"
+              ? "Ты выпал из топ-3 — пора возвращать корону"
+              : "You dropped out of top-3 — time to climb back",
+          href: "/leaderboard",
+          icon: <Crown className="size-4 text-accent-orange" />,
+        };
+      }
       return {
         primary: actorName,
         body:
           locale === "ru"
-            ? "обогнал тебя в рейтинге"
-            : "passed you on the leaderboard",
+            ? passers > 1
+              ? `и ещё ${passers - 1} обогнали тебя сегодня`
+              : "обогнал тебя в рейтинге друзей сегодня"
+            : passers > 1
+              ? `and ${passers - 1} more passed you today`
+              : "passed you in the friends ranking today",
         href: "/leaderboard",
         icon: <Trophy className="size-4 text-violet-soft" />,
+      };
+    }
+    case "LEADERBOARD_TOP3":
+      return {
+        primary:
+          locale === "ru"
+            ? `Топ-${(n.data?.rank as number) ?? 3} по серии!`
+            : `Top-${(n.data?.rank as number) ?? 3} on streak!`,
+        body:
+          locale === "ru"
+            ? `Серия ${(n.data?.streak as number) ?? ""} дн. — ты в эфире`
+            : `${(n.data?.streak as number) ?? ""}-day streak — you're trending`,
+        href: "/leaderboard",
+        icon: <Crown className="size-4 text-lime" />,
       };
     case "CHALLENGE_INVITE":
       return {

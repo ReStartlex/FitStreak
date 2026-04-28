@@ -20,6 +20,7 @@ import {
   Ban,
   QrCode,
   Award,
+  ShieldAlert,
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
@@ -29,6 +30,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { YearHeatmap } from "@/components/dashboard/YearHeatmap";
 import { ProfileQrModal } from "@/components/social/ProfileQrModal";
+import { ReportUserModal } from "@/components/social/ReportUserModal";
 import { useI18n } from "@/lib/i18n/provider";
 
 const TIER_TONE: Record<string, string> = {
@@ -107,6 +109,7 @@ export function PublicProfileClient({
   );
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [qrOpen, setQrOpen] = React.useState(false);
+  const [reportOpen, setReportOpen] = React.useState(false);
   const moreRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -377,14 +380,33 @@ export function PublicProfileClient({
                     {locale === "ru" ? "QR профиля" : "Profile QR"}
                   </button>
                   {!isSelf && (
-                    <button
-                      type="button"
-                      onClick={blockUser}
-                      className="w-full text-left flex items-center gap-2 px-3 h-11 text-sm hover:bg-rose/10 text-rose"
-                    >
-                      <Ban className="size-4" />
-                      {locale === "ru" ? "Заблокировать" : "Block user"}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isAuthed) {
+                            router.push(
+                              `/signin?from=${encodeURIComponent(`/u/${user.username ?? ""}`)}`,
+                            );
+                            return;
+                          }
+                          setReportOpen(true);
+                          setMoreOpen(false);
+                        }}
+                        className="w-full text-left flex items-center gap-2 px-3 h-11 text-sm hover:bg-white/[0.04] text-rose/90"
+                      >
+                        <ShieldAlert className="size-4" />
+                        {locale === "ru" ? "Пожаловаться" : "Report"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={blockUser}
+                        className="w-full text-left flex items-center gap-2 px-3 h-11 text-sm hover:bg-rose/10 text-rose"
+                      >
+                        <Ban className="size-4" />
+                        {locale === "ru" ? "Заблокировать" : "Block user"}
+                      </button>
+                    </>
                   )}
                 </div>
               )}
@@ -588,6 +610,17 @@ export function PublicProfileClient({
         onClose={() => setQrOpen(false)}
         username={user.username ?? ""}
         displayName={user.name}
+      />
+      <ReportUserModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        userId={user.id}
+        displayName={user.name}
+        onReported={() => {
+          // Reported → automatically blocked → page no longer
+          // accessible. Send the user back to a safe place.
+          setTimeout(() => router.push("/leaderboard"), 600);
+        }}
       />
     </section>
   );

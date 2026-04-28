@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { UserList } from "@/components/social/UserList";
+import { PaginatedUserList } from "@/components/social/PaginatedUserList";
 import { getBlockedSets } from "@/lib/api/blocks";
 
 interface Params {
@@ -41,6 +41,7 @@ export default async function FollowingPage({
   const blocks = await getBlockedSets(me);
   if (me && me !== target.id && blocks.any.has(target.id)) notFound();
 
+  const PAGE = 30;
   const rows = await db.follow.findMany({
     where: {
       followerId: target.id,
@@ -49,7 +50,7 @@ export default async function FollowingPage({
         : {}),
     },
     orderBy: { createdAt: "desc" },
-    take: 200,
+    take: PAGE + 1,
     include: {
       following: {
         select: {
@@ -62,6 +63,14 @@ export default async function FollowingPage({
         },
       },
     },
+  });
+  const hasMore = rows.length > PAGE;
+  const visibleRows = hasMore ? rows.slice(0, PAGE) : rows;
+  const initialCursor = hasMore
+    ? visibleRows[visibleRows.length - 1]?.id ?? null
+    : null;
+  const totalFollowing = await db.follow.count({
+    where: { followerId: target.id },
   });
 
   return (
@@ -79,11 +88,11 @@ export default async function FollowingPage({
             {target.name ?? `@${target.username}`}
           </h1>
           <p className="text-sm text-ink-muted mb-6">
-            {rows.length}{" "}
-            {rows.length === 1 ? "following" : "following"}
+            {totalFollowing} following
           </p>
-          <UserList
-            users={rows.map((r) => ({
+          <PaginatedUserList
+            endpoint={`/api/users/${target.username}/following`}
+            initialUsers={visibleRows.map((r) => ({
               id: r.following.id,
               name: r.following.name ?? r.following.username ?? "Athlete",
               username: r.following.username,
@@ -91,6 +100,8 @@ export default async function FollowingPage({
               level: r.following.level,
               currentStreak: r.following.currentStreak,
             }))}
+            initialCursor={initialCursor}
+            initialHasMore={hasMore}
           />
         </div>
       </main>

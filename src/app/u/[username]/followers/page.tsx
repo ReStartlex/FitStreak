@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { UserList } from "@/components/social/UserList";
+import { PaginatedUserList } from "@/components/social/PaginatedUserList";
 import { getBlockedSets } from "@/lib/api/blocks";
 
 interface Params {
@@ -42,8 +42,8 @@ export default async function FollowersPage({
   const blocks = await getBlockedSets(me);
   if (me && me !== target.id && blocks.any.has(target.id)) notFound();
 
-  // Most-recent followers first (cap at 200 for the v1 page). Also
-  // strip out anyone the visitor has blocked or who blocked them.
+  // First page (30) — the rest hydrate via /api/users/:username/followers.
+  const PAGE = 30;
   const rows = await db.follow.findMany({
     where: {
       followingId: target.id,
@@ -52,7 +52,7 @@ export default async function FollowersPage({
         : {}),
     },
     orderBy: { createdAt: "desc" },
-    take: 200,
+    take: PAGE + 1,
     include: {
       follower: {
         select: {
@@ -65,6 +65,14 @@ export default async function FollowersPage({
         },
       },
     },
+  });
+  const hasMore = rows.length > PAGE;
+  const visibleRows = hasMore ? rows.slice(0, PAGE) : rows;
+  const initialCursor = hasMore
+    ? visibleRows[visibleRows.length - 1]?.id ?? null
+    : null;
+  const totalFollowers = await db.follow.count({
+    where: { followingId: target.id },
   });
 
   return (
@@ -82,11 +90,12 @@ export default async function FollowersPage({
             {target.name ?? `@${target.username}`}
           </h1>
           <p className="text-sm text-ink-muted mb-6">
-            {rows.length}{" "}
-            {rows.length === 1 ? "follower" : "followers"}
+            {totalFollowers}{" "}
+            {totalFollowers === 1 ? "follower" : "followers"}
           </p>
-          <UserList
-            users={rows.map((r) => ({
+          <PaginatedUserList
+            endpoint={`/api/users/${target.username}/followers`}
+            initialUsers={visibleRows.map((r) => ({
               id: r.follower.id,
               name: r.follower.name ?? r.follower.username ?? "Athlete",
               username: r.follower.username,
@@ -94,6 +103,8 @@ export default async function FollowersPage({
               level: r.follower.level,
               currentStreak: r.follower.currentStreak,
             }))}
+            initialCursor={initialCursor}
+            initialHasMore={hasMore}
           />
         </div>
       </main>

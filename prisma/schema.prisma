@@ -73,6 +73,8 @@ model User {
   reactions     ActivityReaction[]
   blocksMade    Block[] @relation("Blocker")
   blocksReceived Block[] @relation("Blocked")
+  reportsMade    Report[] @relation("Reporter")
+  reportsReceived Report[] @relation("Reported")
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -351,7 +353,78 @@ enum NotificationType {
   CHALLENGE_DONE
   CHALLENGE_INVITE
   LEADERBOARD_OVERTAKE
+  LEADERBOARD_TOP3
   SYSTEM
+}
+
+// ───────────────────────── RankSnapshots ─────────────────────────
+
+/**
+ * One row per (scope, observer?, user, day). Captured by the
+ * `/api/cron/leaderboard-overtake` cron once a day; the next run
+ * compares yesterday's rows with today's to surface position changes
+ * without spamming on every activity log.
+ */
+model RankSnapshot {
+  id         String    @id @default(cuid())
+  scope      RankScope
+  observerId String?
+  userId     String
+  rank       Int
+  value      Int
+  capturedOn DateTime  @db.Date
+
+  @@unique([scope, observerId, userId, capturedOn])
+  @@index([scope, capturedOn])
+  @@index([userId, capturedOn])
+}
+
+enum RankScope {
+  /** Top performers globally, ordered by current streak. */
+  GLOBAL_STREAK
+  /** Per-observer ranking inside their friend circle by today's energy. */
+  FRIENDS_TODAY
+}
+
+// ───────────────────────── Reports ─────────────────────────
+
+/**
+ * Lightweight abuse report. The reporter automatically also blocks
+ * the reported user (a separate Block row), so they get safety
+ * benefits immediately without waiting for triage.
+ */
+model Report {
+  id          String        @id @default(cuid())
+  reporterId  String
+  targetId    String
+  category    ReportCategory
+  comment     String?       @db.Text
+  status      ReportStatus  @default(OPEN)
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+
+  reporter User @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  target   User @relation("Reported", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([targetId, status])
+  @@index([reporterId])
+}
+
+enum ReportCategory {
+  SPAM
+  HARASSMENT
+  IMPERSONATION
+  CHEATING
+  INAPPROPRIATE
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
 }
 
 // ───────────────────────── Waitlist ─────────────────────────

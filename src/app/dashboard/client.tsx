@@ -25,6 +25,7 @@ import { EnergyTrend } from "@/components/dashboard/EnergyTrend";
 import { PersonalRecordsCard } from "@/components/dashboard/PersonalRecordsCard";
 import { InsightsCard } from "@/components/dashboard/InsightsCard";
 import { YearHeatmap } from "@/components/dashboard/YearHeatmap";
+import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
 import { invalidateMyStreak } from "@/lib/hooks/use-my-streak";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -319,6 +320,7 @@ export function DashboardClient({
         event={celebration}
         onClose={() => setCelebration(null)}
       />
+      <OnboardingTour />
     </>
   );
 }
