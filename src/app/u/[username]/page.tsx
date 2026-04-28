@@ -75,6 +75,8 @@ export default async function PublicProfilePage({
     energyRank,
     heatmapRows,
     isFollowingRow,
+    followersCount,
+    followingCount,
   ] = await Promise.all([
     db.activityRecord.aggregate({
       where: { userId: user.id, recordedAt: { gte: today } },
@@ -107,6 +109,8 @@ export default async function PublicProfilePage({
           select: { id: true },
         })
       : Promise.resolve(null),
+    db.follow.count({ where: { followingId: user.id } }),
+    db.follow.count({ where: { followerId: user.id } }),
   ]);
 
   const heatmap: Record<string, number> = {};
@@ -142,6 +146,8 @@ export default async function PublicProfilePage({
               amount: e._sum.amount ?? 0,
               energy: e._sum.energy ?? 0,
             })),
+            followersCount,
+            followingCount,
           }}
           isSelf={me === user.id}
           isAuthed={Boolean(me)}

@@ -45,6 +45,8 @@ interface PublicUser {
   weekEnergy: number;
   weekAmount: number;
   topExercises: Array<{ exerciseId: string; amount: number; energy: number }>;
+  followersCount: number;
+  followingCount: number;
 }
 
 export function PublicProfileClient({
@@ -72,6 +74,10 @@ export function PublicProfileClient({
   const [following, setFollowing] = React.useState(initialFollowing);
   const [followPending, setFollowPending] = React.useState(false);
   const [shared, setShared] = React.useState(false);
+  // Optimistic counter so the UI updates instantly when toggling follow.
+  const [followersCount, setFollowersCount] = React.useState(
+    user.followersCount,
+  );
 
   const heatmapHasData = React.useMemo(
     () => Object.values(heatmap).some((v) => v > 0),
@@ -91,6 +97,7 @@ export function PublicProfileClient({
       const res = await fetch(`/api/follow/${user.id}`, { method });
       if (res.ok) {
         setFollowing((v) => !v);
+        setFollowersCount((c) => c + (following ? -1 : 1));
         toast(
           following
             ? locale === "ru"
@@ -201,6 +208,28 @@ export function PublicProfileClient({
                 {locale === "ru" ? "с" : "since"} {memberSince}
               </Badge>
             </div>
+            {user.username && (
+              <div className="mt-3 flex flex-wrap gap-4 text-sm">
+                <Link
+                  href={`/u/${user.username}/followers`}
+                  className="hover:text-ink transition-colors text-ink-dim"
+                >
+                  <span className="font-display font-semibold text-ink number-tabular">
+                    {formatNumber(followersCount, locale)}
+                  </span>{" "}
+                  {locale === "ru" ? "подписчиков" : "followers"}
+                </Link>
+                <Link
+                  href={`/u/${user.username}/following`}
+                  className="hover:text-ink transition-colors text-ink-dim"
+                >
+                  <span className="font-display font-semibold text-ink number-tabular">
+                    {formatNumber(user.followingCount, locale)}
+                  </span>{" "}
+                  {locale === "ru" ? "подписки" : "following"}
+                </Link>
+              </div>
+            )}
           </div>
           <div className="flex flex-row sm:flex-col gap-2 self-stretch sm:self-center w-full sm:w-auto">
             {isSelf ? (

@@ -9,6 +9,7 @@ import {
   evaluateAchievementsAfterActivity,
   type GrantedAchievement,
 } from "./achievements";
+import { createNotification } from "@/lib/notifications";
 
 export function userToBodyMetrics(
   user: Pick<User, "gender" | "age" | "heightCm" | "weightKg">,
@@ -259,6 +260,43 @@ export async function logActivity(
         finalLevel = refreshed.level;
       }
     }
+  }
+
+  // Side-channel notifications (level up, achievement, streak milestones).
+  // All wrapped in `void` because the activity log itself must succeed
+  // even if the notifications subsystem hiccups.
+  if (finalLevel > previousLevel) {
+    void createNotification({
+      userId,
+      type: "LEVEL_UP",
+      data: { level: finalLevel, previousLevel },
+    });
+  }
+  for (const a of achievements) {
+    if (a.isNew) {
+      void createNotification({
+        userId,
+        type: "ACHIEVEMENT",
+        data: {
+          slug: a.slug,
+          title: a.titleEn,
+          titleRu: a.titleRu,
+          tier: a.tier,
+        },
+      });
+    }
+  }
+  // Streak milestone every 7d/14d/30d/50d/100d.
+  const STREAK_MILESTONES = new Set([3, 7, 14, 30, 50, 75, 100, 200, 365]);
+  if (
+    updatedUser.currentStreak !== user.currentStreak &&
+    STREAK_MILESTONES.has(updatedUser.currentStreak)
+  ) {
+    void createNotification({
+      userId,
+      type: "STREAK_MILESTONE",
+      data: { streak: updatedUser.currentStreak },
+    });
   }
 
   return {

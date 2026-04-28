@@ -8,6 +8,8 @@ import { Menu, X, ArrowUpRight, Flame, LogOut, Settings, UserRound } from "lucid
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
 import { LocaleSwitch } from "./LocaleSwitch";
+import { UserSearch } from "./UserSearch";
+import { NotificationsBell } from "./NotificationsBell";
 import { useI18n } from "@/lib/i18n/provider";
 import { useMyStreak } from "@/lib/hooks/use-my-streak";
 import { cn } from "@/lib/cn";
@@ -91,11 +93,17 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
+          {isAuthed && (
+            <div className="hidden xl:block">
+              <UserSearch />
+            </div>
+          )}
           <LocaleSwitch />
           {status === "loading" ? (
             <div className="size-9 rounded-full bg-white/[0.04] border border-line animate-pulse" />
           ) : isAuthed ? (
             <div className="flex items-center gap-2">
+              <NotificationsBell />
               {myStreak && myStreak.currentStreak > 0 && (
                 <Link
                   href="/dashboard"

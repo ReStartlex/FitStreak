@@ -11,6 +11,7 @@ import {
   tooMany,
 } from "@/lib/api/response";
 import { rateLimit } from "@/lib/api/rate-limit";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -66,7 +67,7 @@ async function mutate(
     if (!target) return notFound("User not found");
 
     if (action === "follow") {
-      await db.follow.upsert({
+      const result = await db.follow.upsert({
         where: {
           followerId_followingId: {
             followerId: session.user.id,
@@ -76,6 +77,15 @@ async function mutate(
         create: { followerId: session.user.id, followingId: userId },
         update: {},
       });
+      // Only notify on the *first* follow (createdAt within last second).
+      const isNew = Date.now() - result.createdAt.getTime() < 1000;
+      if (isNew) {
+        void createNotification({
+          userId,
+          actorId: session.user.id,
+          type: "FOLLOW",
+        });
+      }
       return ok({ following: true });
     }
 

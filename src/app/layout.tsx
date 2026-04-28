@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { MobileTabBar } from "@/components/layout/MobileTabBar";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -95,7 +96,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-dvh antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <MobileTabBar />
+        </Providers>
       </body>
     </html>
   );

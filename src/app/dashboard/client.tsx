@@ -20,6 +20,8 @@ import { MiniLeaderboard } from "@/components/dashboard/MiniLeaderboard";
 import { DailyTip } from "@/components/dashboard/DailyTip";
 import { StreakWarning } from "@/components/dashboard/StreakWarning";
 import { ShareTodayButton } from "@/components/dashboard/ShareTodayButton";
+import { FriendsFeed } from "@/components/dashboard/FriendsFeed";
+import { EnergyTrend } from "@/components/dashboard/EnergyTrend";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -277,6 +279,7 @@ export function DashboardClient({
               onAdd={(exId, amt, e, x) => handleAdd(exId, amt, e, x)}
             />
             <DailyTip />
+            <EnergyTrend data={heatmap} goal={user.dailyGoal} days={30} />
             <Heatmap weeks={16} data={heatmap} />
             <PersonalStats data={pStats} />
             <AchievementsGrid limit={8} />
@@ -293,6 +296,7 @@ export function DashboardClient({
                 setCelebration({ type: "freeze-used", remaining });
               }}
             />
+            <FriendsFeed />
             <MiniLeaderboard myUserId={user.id} />
             <ActivityFeed records={recentRecords} />
           </div>
