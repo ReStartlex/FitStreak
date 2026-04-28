@@ -49,6 +49,38 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
         ru: "Этот email уже привязан к другому способу входа.",
         en: "This email is linked to a different sign-in method.",
       },
+      Configuration: {
+        ru: "Этот способ входа сейчас недоступен. Попробуйте другой.",
+        en: "This sign-in method is unavailable right now. Try another.",
+      },
+      VKID_DENIED: {
+        ru: "Вход через VK отменён.",
+        en: "VK sign-in was cancelled.",
+      },
+      VKID_STATE: {
+        ru: "Сессия VK истекла. Попробуйте ещё раз.",
+        en: "VK session expired. Please try again.",
+      },
+      VKID_DEVICE: {
+        ru: "VK не вернул device_id. Попробуйте ещё раз.",
+        en: "VK didn't return a device_id. Please try again.",
+      },
+      VKID_TOKEN: {
+        ru: "Не удалось обменять код VK на токен.",
+        en: "Couldn't exchange VK code for a token.",
+      },
+      VKID_USERINFO: {
+        ru: "Не удалось получить профиль из VK.",
+        en: "Couldn't fetch VK profile.",
+      },
+      VKID_NO_EMAIL: {
+        ru: "Разрешите VK поделиться email или войдите другим способом.",
+        en: "Allow VK to share your email, or use another sign-in method.",
+      },
+      VKID_USER_MISSING: {
+        ru: "Аккаунт VK не найден после авторизации. Попробуйте ещё раз.",
+        en: "VK account missing after auth. Try again.",
+      },
       VALIDATION: {
         ru: "Проверьте поля и попробуйте снова.",
         en: "Check the fields and try again.",
@@ -78,12 +110,20 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ email, password, name, locale }),
         });
+        const json = await res.json().catch(() => null);
         if (!res.ok) {
-          const json = await res.json().catch(() => null);
           setError(json?.error?.message ?? "DEFAULT");
           setPending(false);
           return;
         }
+        // The new flow always requires email verification before sign-in.
+        if (json?.data?.requiresVerification ?? json?.requiresVerification) {
+          const e =
+            json?.data?.email ?? json?.email ?? email.toLowerCase();
+          router.push(`/verify-email?email=${encodeURIComponent(e)}`);
+          return;
+        }
+        // Fallback: legacy response shape — try to sign in directly.
       }
 
       const result = await signIn("credentials", {
@@ -93,6 +133,32 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
       });
 
       if (result?.error) {
+        // Distinguish "wrong password" from "unverified account" — the
+        // Credentials provider returns null in both cases (which surfaces
+        // as CredentialsSignin), so we explicitly check the user state.
+        try {
+          const probe = await fetch("/api/auth/check-email", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          const pjson = await probe.json().catch(() => null);
+          const data = pjson?.data ?? pjson;
+          if (data?.exists && !data?.verified) {
+            // Trigger a fresh code and send the user to /verify-email.
+            await fetch("/api/auth/verify-request", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ email, locale }),
+            }).catch(() => null);
+            router.push(
+              `/verify-email?email=${encodeURIComponent(email.toLowerCase())}`,
+            );
+            return;
+          }
+        } catch {
+          // Ignore and fall through to the generic error.
+        }
         setError(result.error);
         setPending(false);
         return;
@@ -109,6 +175,14 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
 
   const onOAuth = (provider: "google" | "yandex" | "vk") => {
     setPending(true);
+    if (provider === "vk") {
+      // VK ID OAuth 2.1 is handled by our own /api/auth/vkid/* routes
+      // (the bundled `next-auth/providers/vk` only supports legacy VK
+      // and breaks for apps registered at id.vk.com).
+      const from = encodeURIComponent(callbackUrl);
+      window.location.href = `/api/auth/vkid/start?from=${from}`;
+      return;
+    }
     void signIn(provider, { callbackUrl });
   };
 
@@ -266,8 +340,8 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
           </span>
           <h2 className="font-display text-display-lg font-bold mt-5 leading-[1.05]">
             {locale === "ru"
-              ? "Двигайся каждый день — и серия растёт."
-              : "Move every day — and your streak grows."}
+              ? "Двигайся каждый день — и серия будет расти."
+              : "Move every day — and your streak will grow."}
           </h2>
           <p className="text-ink-dim mt-4 max-w-md">
             {locale === "ru"

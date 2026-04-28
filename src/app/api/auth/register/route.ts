@@ -5,6 +5,10 @@ import { hash } from "bcryptjs";
 import { db } from "@/lib/db";
 import { ok, badRequest, serverError, tooMany } from "@/lib/api/response";
 import { rateLimit, clientId } from "@/lib/api/rate-limit";
+import {
+  issueVerificationCode,
+  sendVerificationEmail,
+} from "@/lib/auth/email-verify";
 
 export const runtime = "nodejs";
 
@@ -26,29 +30,54 @@ export async function POST(request: NextRequest) {
       return badRequest("Invalid payload", parsed.error.flatten());
     }
     const { email, password, name, locale } = parsed.data;
+    const lowEmail = email.toLowerCase();
 
-    const existing = await db.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-    if (existing) {
+    const existing = await db.user.findUnique({ where: { email: lowEmail } });
+
+    if (existing && existing.emailVerified) {
       return badRequest("EMAIL_TAKEN");
     }
 
-    const passwordHash = await hash(password, 12);
-    const user = await db.user.create({
-      data: {
-        email: email.toLowerCase(),
-        passwordHash,
-        name: name ?? email.split("@")[0],
-        locale,
-        reminders: {
-          create: {},
+    if (existing && !existing.emailVerified) {
+      // Pending registration exists. Re-issue a code so the legitimate
+      // owner of the inbox can finish signing up, but DO NOT touch the
+      // password — otherwise anyone could squat an unverified email and
+      // hijack the account once the real owner enters the code.
+      const { code, expiresAt } = await issueVerificationCode(lowEmail);
+      await sendVerificationEmail({ email: lowEmail, code, locale });
+      return ok(
+        {
+          requiresVerification: true,
+          pending: true,
+          email: lowEmail,
+          expiresAt: expiresAt.toISOString(),
         },
+        { status: 200 },
+      );
+    }
+
+    const passwordHash = await hash(password, 12);
+    await db.user.create({
+      data: {
+        email: lowEmail,
+        passwordHash,
+        name: name ?? lowEmail.split("@")[0],
+        locale,
+        reminders: { create: {} },
       },
-      select: { id: true, email: true, name: true },
     });
 
-    return ok({ user }, { status: 201 });
+    const { code, expiresAt } = await issueVerificationCode(lowEmail);
+    await sendVerificationEmail({ email: lowEmail, code, locale });
+
+    return ok(
+      {
+        requiresVerification: true,
+        email: lowEmail,
+        expiresAt: expiresAt.toISOString(),
+      },
+      { status: 201 },
+    );
   } catch (error) {
     return serverError(error);
   }

@@ -3,7 +3,6 @@ import type { OAuthConfig } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import Yandex from "next-auth/providers/yandex";
-import VK from "next-auth/providers/vk";
 import { compare } from "bcryptjs";
 import { z } from "zod";
 
@@ -35,6 +34,15 @@ export function buildProviders(): Provider[] {
 
         const ok = await compare(password, user.passwordHash);
         if (!ok) return null;
+
+        // Block sign-in for unverified accounts. We return null (instead
+        // of throwing) so the UI gets the standard CredentialsSignin
+        // error; the sign-in form makes a separate /api/auth/check-email
+        // call to figure out *why* it failed and re-route the user to
+        // /verify-email when appropriate.
+        if (!user.emailVerified) {
+          return null;
+        }
 
         return {
           id: user.id,
@@ -70,18 +78,11 @@ export function buildProviders(): Provider[] {
     };
     providers.push(yandex);
   }
-  if (env.oauth.vk) {
-    const vk = VK({
-      clientId: env.AUTH_VK_ID,
-      clientSecret: env.AUTH_VK_SECRET,
-      allowDangerousEmailAccountLinking: true,
-    }) as OAuthConfig<Record<string, unknown>>;
-    // VK's classic OAuth (`oauth.vk.com/authorize`) does not support PKCE,
-    // it returns `invalid_request: Code challenge method is unsupported`
-    // when Auth.js sends the default `["pkce", "state"]` checks.
-    vk.checks = ["state"];
-    providers.push(vk);
-  }
+
+  // VK ID is handled by a custom flow at /api/auth/vkid/* — see the
+  // route handlers there. The `next-auth/providers/vk` provider only
+  // supports the legacy `oauth.vk.com` endpoint which doesn't work
+  // for apps registered at id.vk.com (modern VK ID).
 
   return providers;
 }

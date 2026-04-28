@@ -5,7 +5,7 @@ export const LOCALES: Locale[] = ["ru", "en"];
 export const dictionaries = {
   ru: {
     brand: {
-      tagline: "Двигайся каждый день — и серия растёт.",
+      tagline: "Двигайся каждый день — и серия будет расти.",
     },
     nav: {
       product: "Продукт",
@@ -431,7 +431,7 @@ export const dictionaries = {
   },
   en: {
     brand: {
-      tagline: "Streak. Show up. Every day.",
+      tagline: "Move every day — and your streak will grow.",
     },
     nav: {
       product: "Product",
