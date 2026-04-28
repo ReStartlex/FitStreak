@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/response";
 import { startOfToday } from "@/lib/api/activity-service";
 import { getDivision } from "@/lib/ranks";
+import { getBlockedSets } from "@/lib/api/blocks";
 
 export const runtime = "nodejs";
 
@@ -43,9 +44,13 @@ export async function GET(request: NextRequest) {
     // Always honour the user-controlled "Show on leaderboard" flag.
     // The signed-in user themselves is exempt so they always see
     // their own rank, even when hidden globally.
+    const blocks = await getBlockedSets(me?.id ?? null);
     const userFilter: Prisma.UserWhereInput = me?.id
       ? { OR: [{ showOnLeaderboard: true }, { id: me.id }] }
       : { showOnLeaderboard: true };
+    if (blocks.any.size > 0) {
+      userFilter.id = { notIn: Array.from(blocks.any) };
+    }
     if (scope === "men") userFilter.gender = "MALE";
     if (scope === "women") userFilter.gender = "FEMALE";
     if (scope === "age" && me?.age) {

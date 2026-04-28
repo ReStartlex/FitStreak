@@ -66,7 +66,7 @@ export default async function AchievementsPage() {
           />
         </div>
 
-        <AchievementsGrid />
+        <AchievementsGrid showFilters />
       </main>
       <Footer />
     </>

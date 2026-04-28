@@ -23,6 +23,7 @@ import { ShareTodayButton } from "@/components/dashboard/ShareTodayButton";
 import { FriendsFeed } from "@/components/dashboard/FriendsFeed";
 import { EnergyTrend } from "@/components/dashboard/EnergyTrend";
 import { PersonalRecordsCard } from "@/components/dashboard/PersonalRecordsCard";
+import { InsightsCard } from "@/components/dashboard/InsightsCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -280,6 +281,7 @@ export function DashboardClient({
               onAdd={(exId, amt, e, x) => handleAdd(exId, amt, e, x)}
             />
             <DailyTip />
+            <InsightsCard />
             <EnergyTrend data={heatmap} goal={user.dailyGoal} days={30} />
             <Heatmap weeks={16} data={heatmap} />
             <PersonalRecordsCard />

@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { UserList } from "@/components/social/UserList";
+import { getBlockedSets } from "@/lib/api/blocks";
 
 interface Params {
   username: string;
@@ -37,8 +38,16 @@ export default async function FollowingPage({
   if (!target) notFound();
   if (!target.isPublic && me !== target.id) notFound();
 
+  const blocks = await getBlockedSets(me);
+  if (me && me !== target.id && blocks.any.has(target.id)) notFound();
+
   const rows = await db.follow.findMany({
-    where: { followerId: target.id },
+    where: {
+      followerId: target.id,
+      ...(blocks.any.size > 0
+        ? { followingId: { notIn: Array.from(blocks.any) } }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 200,
     include: {

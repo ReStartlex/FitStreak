@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { ok, badRequest, serverError } from "@/lib/api/response";
+import { getBlockedSets } from "@/lib/api/blocks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,11 +22,23 @@ export async function GET(request: NextRequest) {
     if (q.length < 2) return badRequest("MIN_LENGTH");
     const lower = q.toLowerCase();
 
+    const session = await auth();
+    const me = session?.user?.id ?? null;
+    const blocks = await getBlockedSets(me);
+
     const users = await db.user.findMany({
       where: {
-        OR: [
-          { username: { startsWith: lower, mode: "insensitive" } },
-          { name: { contains: q, mode: "insensitive" } },
+        AND: [
+          {
+            OR: [
+              { username: { startsWith: lower, mode: "insensitive" } },
+              { name: { contains: q, mode: "insensitive" } },
+            ],
+          },
+          blocks.any.size > 0
+            ? { id: { notIn: Array.from(blocks.any) } }
+            : {},
+          { isPublic: true },
         ],
       },
       select: {

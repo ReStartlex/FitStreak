@@ -29,10 +29,43 @@ const TIER_TONE: Record<ApiItem["tier"], string> = {
   LEGEND: "border-lime/60 shadow-glow",
 };
 
-export function AchievementsGrid({ limit }: { limit?: number }) {
+const TIER_LABEL: Record<
+  ApiItem["tier"],
+  { ru: string; en: string; chip: string }
+> = {
+  BRONZE: { ru: "Бронза", en: "Bronze", chip: "text-amber-400" },
+  SILVER: { ru: "Серебро", en: "Silver", chip: "text-slate-300" },
+  GOLD: { ru: "Золото", en: "Gold", chip: "text-accent-orange" },
+  ELITE: { ru: "Элита", en: "Elite", chip: "text-violet-soft" },
+  LEGEND: { ru: "Легенда", en: "Legend", chip: "text-lime" },
+};
+
+const TIER_ORDER: ApiItem["tier"][] = [
+  "BRONZE",
+  "SILVER",
+  "GOLD",
+  "ELITE",
+  "LEGEND",
+];
+
+type StatusFilter = "all" | "unlocked" | "locked";
+
+interface AchievementsGridProps {
+  /** Limit visible items (used for compact dashboard view). */
+  limit?: number;
+  /** Whether to render the filter toolbar (tier chips + status). */
+  showFilters?: boolean;
+}
+
+export function AchievementsGrid({
+  limit,
+  showFilters = false,
+}: AchievementsGridProps) {
   const { t, locale } = useI18n();
   const [items, setItems] = React.useState<ApiItem[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [tier, setTier] = React.useState<ApiItem["tier"] | "ALL">("ALL");
+  const [status, setStatus] = React.useState<StatusFilter>("all");
 
   React.useEffect(() => {
     let cancelled = false;
@@ -51,7 +84,26 @@ export function AchievementsGrid({ limit }: { limit?: number }) {
     };
   }, []);
 
-  const visible = limit ? items.slice(0, limit) : items;
+  // Per-tier counts so each chip can show how many are unlocked.
+  const tierCounts = React.useMemo(() => {
+    const map: Record<string, { total: number; unlocked: number }> = {};
+    for (const a of items) {
+      const slot = (map[a.tier] ??= { total: 0, unlocked: 0 });
+      slot.total += 1;
+      if (a.unlocked) slot.unlocked += 1;
+    }
+    return map;
+  }, [items]);
+
+  const filtered = React.useMemo(() => {
+    let list = items;
+    if (tier !== "ALL") list = list.filter((a) => a.tier === tier);
+    if (status === "unlocked") list = list.filter((a) => a.unlocked);
+    if (status === "locked") list = list.filter((a) => !a.unlocked);
+    return list;
+  }, [items, tier, status]);
+
+  const visible = limit ? filtered.slice(0, limit) : filtered;
   const unlockedCount = items.filter((a) => a.unlocked).length;
 
   return (
@@ -72,6 +124,61 @@ export function AchievementsGrid({ limit }: { limit?: number }) {
         )}
       </div>
 
+      {showFilters && !loading && items.length > 0 && (
+        <div className="mb-4 flex flex-col gap-2.5">
+          <div className="flex flex-wrap gap-1.5">
+            <FilterChip
+              active={tier === "ALL"}
+              onClick={() => setTier("ALL")}
+            >
+              {locale === "ru" ? "Все" : "All"}{" "}
+              <span className="text-ink-muted">({items.length})</span>
+            </FilterChip>
+            {TIER_ORDER.map((tk) => {
+              const count = tierCounts[tk];
+              if (!count) return null;
+              const label = TIER_LABEL[tk];
+              return (
+                <FilterChip
+                  key={tk}
+                  active={tier === tk}
+                  onClick={() => setTier(tk)}
+                  className={tier === tk ? "" : label.chip}
+                >
+                  {locale === "ru" ? label.ru : label.en}{" "}
+                  <span className="text-ink-muted">
+                    {count.unlocked}/{count.total}
+                  </span>
+                </FilterChip>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <FilterChip
+              active={status === "all"}
+              onClick={() => setStatus("all")}
+              tone="ghost"
+            >
+              {locale === "ru" ? "Все" : "All"}
+            </FilterChip>
+            <FilterChip
+              active={status === "unlocked"}
+              onClick={() => setStatus("unlocked")}
+              tone="ghost"
+            >
+              {locale === "ru" ? "Открыто" : "Unlocked"}
+            </FilterChip>
+            <FilterChip
+              active={status === "locked"}
+              onClick={() => setStatus("locked")}
+              tone="ghost"
+            >
+              {locale === "ru" ? "Закрыто" : "Locked"}
+            </FilterChip>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid place-items-center py-10 text-ink-muted">
           <Loader2 className="size-4 animate-spin" />
@@ -79,6 +186,12 @@ export function AchievementsGrid({ limit }: { limit?: number }) {
       ) : items.length === 0 ? (
         <div className="text-center text-sm text-ink-dim py-6">
           {t.achievements.empty}
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="text-center text-sm text-ink-dim py-6">
+          {locale === "ru"
+            ? "По выбранным фильтрам ничего нет."
+            : "Nothing matches the current filters."}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -125,5 +238,37 @@ export function AchievementsGrid({ limit }: { limit?: number }) {
         </div>
       )}
     </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+  className,
+  tone = "solid",
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+  tone?: "solid" | "ghost";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "h-8 px-3 rounded-full text-xs font-medium transition-colors border",
+        active
+          ? tone === "ghost"
+            ? "bg-white/[0.08] border-white/15 text-ink"
+            : "bg-lime/15 border-lime/40 text-lime"
+          : "bg-white/[0.02] border-line text-ink-dim hover:text-ink hover:bg-white/[0.05]",
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }

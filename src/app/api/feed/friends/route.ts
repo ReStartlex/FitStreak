@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ok, unauthorized, serverError } from "@/lib/api/response";
+import { getBlockedSets } from "@/lib/api/blocks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,15 +16,23 @@ export async function GET() {
     const session = await auth();
     if (!session?.user?.id) return unauthorized();
 
-    const follows = await db.follow.findMany({
-      where: { followerId: session.user.id },
-      select: { followingId: true },
-    });
+    const [follows, blocks] = await Promise.all([
+      db.follow.findMany({
+        where: { followerId: session.user.id },
+        select: { followingId: true },
+      }),
+      getBlockedSets(session.user.id),
+    ]);
     if (follows.length === 0) {
       return ok({ items: [] });
     }
 
-    const ids = follows.map((f) => f.followingId);
+    const ids = follows
+      .map((f) => f.followingId)
+      .filter((id) => !blocks.any.has(id));
+    if (ids.length === 0) {
+      return ok({ items: [] });
+    }
     const since = new Date(Date.now() - 7 * 24 * 60 * 60_000);
 
     const records = await db.activityRecord.findMany({

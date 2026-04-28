@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import {
   AlertCircle,
   AtSign,
+  Ban,
   Check,
   CheckCircle2,
   Download,
@@ -19,6 +20,7 @@ import {
   Trash2,
   User as UserIcon,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -362,6 +364,9 @@ export function SettingsClient({ user }: { user: UserCtx }) {
         </a>
       </Section>
 
+      {/* Blocks */}
+      <BlocksSection locale={locale} />
+
       {/* Reminders quick-link */}
       <Section
         title={locale === "ru" ? "Напоминания" : "Reminders"}
@@ -546,6 +551,98 @@ function PrivacyRow({
         />
       </button>
     </div>
+  );
+}
+
+interface BlockedUser {
+  id: string;
+  name: string;
+  username: string | null;
+  image: string | null;
+  reason: string | null;
+  blockedAt: string;
+}
+
+function BlocksSection({ locale }: { locale: "ru" | "en" }) {
+  const [items, setItems] = React.useState<BlockedUser[] | null>(null);
+
+  const refresh = React.useCallback(async () => {
+    try {
+      const r = await fetch("/api/me/blocks");
+      const j = await r.json().catch(() => null);
+      setItems(j?.items ?? []);
+    } catch {
+      setItems([]);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const unblock = async (userId: string) => {
+    setItems((prev) => prev?.filter((u) => u.id !== userId) ?? null);
+    try {
+      await fetch(`/api/block/${userId}`, { method: "DELETE" });
+    } catch {
+      void refresh();
+    }
+  };
+
+  return (
+    <Section
+      title={locale === "ru" ? "Заблокированные" : "Blocked users"}
+      icon={<Ban className="size-4 text-rose" />}
+    >
+      {!items ? (
+        <div className="grid place-items-center py-4 text-ink-muted">
+          <Loader2 className="size-4 animate-spin" />
+        </div>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-ink-dim">
+          {locale === "ru"
+            ? "Никто не заблокирован."
+            : "No one is blocked."}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map((u) => (
+            <div
+              key={u.id}
+              className="flex items-center gap-3 rounded-xl border border-line bg-white/[0.02] p-2.5"
+            >
+              <Avatar
+                name={u.name}
+                src={u.image ?? undefined}
+                size={36}
+              />
+              <div className="flex-1 min-w-0">
+                {u.username ? (
+                  <Link
+                    href={`/u/${u.username}`}
+                    className="font-medium text-sm hover:text-lime"
+                  >
+                    {u.name}
+                  </Link>
+                ) : (
+                  <span className="font-medium text-sm">{u.name}</span>
+                )}
+                <div className="text-xs text-ink-muted">
+                  @{u.username ?? "user"}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => unblock(u.id)}
+              >
+                {locale === "ru" ? "Разблокировать" : "Unblock"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
   );
 }
 

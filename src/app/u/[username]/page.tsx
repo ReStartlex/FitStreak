@@ -71,6 +71,21 @@ export default async function PublicProfilePage({
   const heatmapStart = new Date(today);
   heatmapStart.setDate(heatmapStart.getDate() - 12 * 7 + 1);
 
+  // If the visitor blocked this profile (or vice versa) — pretend it
+  // doesn't exist. Owners always see their own page.
+  if (me && me !== user.id) {
+    const block = await db.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: me, blockedId: user.id },
+          { blockerId: user.id, blockedId: me },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block) notFound();
+  }
+
   const [
     todayAgg,
     weekAgg,
@@ -81,6 +96,7 @@ export default async function PublicProfilePage({
     isFollowingRow,
     followersCount,
     followingCount,
+    recentAchievements,
   ] = await Promise.all([
     db.activityRecord.aggregate({
       where: { userId: user.id, recordedAt: { gte: today } },
@@ -115,6 +131,25 @@ export default async function PublicProfilePage({
       : Promise.resolve(null),
     db.follow.count({ where: { followingId: user.id } }),
     db.follow.count({ where: { followerId: user.id } }),
+    db.userAchievement.findMany({
+      where: { userId: user.id },
+      orderBy: { lastEarnedAt: "desc" },
+      take: 6,
+      include: {
+        achievement: {
+          select: {
+            slug: true,
+            titleRu: true,
+            titleEn: true,
+            descRu: true,
+            descEn: true,
+            icon: true,
+            tier: true,
+            rewardXp: true,
+          },
+        },
+      },
+    }),
   ]);
 
   const heatmap: Record<string, number> = {};
@@ -152,6 +187,23 @@ export default async function PublicProfilePage({
             })),
             followersCount,
             followingCount,
+            recentAchievements: recentAchievements.map((ua) => ({
+              slug: ua.achievement.slug,
+              titleRu: ua.achievement.titleRu,
+              titleEn: ua.achievement.titleEn,
+              descRu: ua.achievement.descRu,
+              descEn: ua.achievement.descEn,
+              icon: ua.achievement.icon,
+              tier: ua.achievement.tier as
+                | "BRONZE"
+                | "SILVER"
+                | "GOLD"
+                | "ELITE"
+                | "LEGEND",
+              rewardXp: ua.achievement.rewardXp,
+              count: ua.count,
+              lastEarnedAt: ua.lastEarnedAt.toISOString(),
+            })),
           }}
           isSelf={me === user.id}
           isAuthed={Boolean(me)}

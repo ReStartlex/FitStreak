@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/Footer";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { UserList } from "@/components/social/UserList";
+import { getBlockedSets } from "@/lib/api/blocks";
 
 interface Params {
   username: string;
@@ -37,9 +38,19 @@ export default async function FollowersPage({
   if (!target) notFound();
   if (!target.isPublic && me !== target.id) notFound();
 
-  // Most-recent followers first (cap at 200 for the v1 page).
+  // Hide the page entirely if either party blocked the other.
+  const blocks = await getBlockedSets(me);
+  if (me && me !== target.id && blocks.any.has(target.id)) notFound();
+
+  // Most-recent followers first (cap at 200 for the v1 page). Also
+  // strip out anyone the visitor has blocked or who blocked them.
   const rows = await db.follow.findMany({
-    where: { followingId: target.id },
+    where: {
+      followingId: target.id,
+      ...(blocks.any.size > 0
+        ? { followerId: { notIn: Array.from(blocks.any) } }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 200,
     include: {

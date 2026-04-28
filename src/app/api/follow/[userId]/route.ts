@@ -67,6 +67,18 @@ async function mutate(
     if (!target) return notFound("User not found");
 
     if (action === "follow") {
+      // Reject follows in either direction of an active block. We don't
+      // leak which side blocked who — both get the same 403.
+      const block = await db.block.findFirst({
+        where: {
+          OR: [
+            { blockerId: session.user.id, blockedId: userId },
+            { blockerId: userId, blockedId: session.user.id },
+          ],
+        },
+        select: { id: true },
+      });
+      if (block) return badRequest("BLOCKED");
       const result = await db.follow.upsert({
         where: {
           followerId_followingId: {

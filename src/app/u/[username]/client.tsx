@@ -16,13 +16,27 @@ import {
   UserCheck,
   Share2,
   Loader2,
+  MoreHorizontal,
+  Ban,
+  QrCode,
+  Award,
+  X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { Heatmap } from "@/components/dashboard/Heatmap";
+import { ProfileQrModal } from "@/components/social/ProfileQrModal";
 import { useI18n } from "@/lib/i18n/provider";
+
+const TIER_TONE: Record<string, string> = {
+  BRONZE: "border-amber-700/40",
+  SILVER: "border-slate-300/30",
+  GOLD: "border-accent-orange/50",
+  ELITE: "border-violet/50",
+  LEGEND: "border-lime/60 shadow-glow",
+};
 import { formatNumber } from "@/lib/format";
 import { getExerciseName, getExercise } from "@/lib/mock/exercises";
 import { getLevelInfo } from "@/lib/leveling";
@@ -47,6 +61,18 @@ interface PublicUser {
   topExercises: Array<{ exerciseId: string; amount: number; energy: number }>;
   followersCount: number;
   followingCount: number;
+  recentAchievements: Array<{
+    slug: string;
+    titleRu: string;
+    titleEn: string;
+    descRu: string;
+    descEn: string;
+    icon: string;
+    tier: "BRONZE" | "SILVER" | "GOLD" | "ELITE" | "LEGEND";
+    rewardXp: number;
+    count: number;
+    lastEarnedAt: string;
+  }>;
 }
 
 export function PublicProfileClient({
@@ -78,6 +104,56 @@ export function PublicProfileClient({
   const [followersCount, setFollowersCount] = React.useState(
     user.followersCount,
   );
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const [qrOpen, setQrOpen] = React.useState(false);
+  const moreRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
+  async function blockUser() {
+    if (!isAuthed) {
+      router.push(
+        `/signin?from=${encodeURIComponent(`/u/${user.username ?? ""}`)}`,
+      );
+      return;
+    }
+    if (
+      !window.confirm(
+        locale === "ru"
+          ? `Заблокировать ${user.name}? Вы перестанете видеть друг друга в ленте, лидерборде и поиске.`
+          : `Block ${user.name}? You'll stop seeing each other in feed, leaderboard and search.`,
+      )
+    )
+      return;
+    try {
+      const res = await fetch(`/api/block/${user.id}`, { method: "POST" });
+      if (res.ok) {
+        setMoreOpen(false);
+        toast(
+          locale === "ru" ? "Пользователь заблокирован" : "User blocked",
+          { tone: "success" },
+        );
+        // Send the visitor away from a now-hidden page.
+        setTimeout(() => router.push("/leaderboard"), 1200);
+      } else {
+        toast(
+          locale === "ru" ? "Не получилось" : "Something went wrong",
+          { tone: "error" },
+        );
+      }
+    } catch {
+      toast(
+        locale === "ru" ? "Сеть недоступна" : "Network unavailable",
+        { tone: "error" },
+      );
+    }
+  }
 
   const heatmapHasData = React.useMemo(
     () => Object.values(heatmap).some((v) => v > 0),
@@ -276,6 +352,42 @@ export function PublicProfileClient({
                   ? "Поделиться"
                   : "Share"}
             </Button>
+            <div ref={moreRef} className="relative">
+              <Button
+                variant="ghost"
+                onClick={() => setMoreOpen((v) => !v)}
+                className="gap-2 sm:!w-10 sm:!px-0 !w-10 !px-0"
+                aria-label="More"
+                title={locale === "ru" ? "Ещё" : "More"}
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+              {moreOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-line bg-bg-card/95 backdrop-blur-2xl shadow-glow z-30 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQrOpen(true);
+                      setMoreOpen(false);
+                    }}
+                    className="w-full text-left flex items-center gap-2 px-3 h-11 text-sm hover:bg-white/[0.04]"
+                  >
+                    <QrCode className="size-4 text-violet-soft" />
+                    {locale === "ru" ? "QR профиля" : "Profile QR"}
+                  </button>
+                  {!isSelf && (
+                    <button
+                      type="button"
+                      onClick={blockUser}
+                      className="w-full text-left flex items-center gap-2 px-3 h-11 text-sm hover:bg-rose/10 text-rose"
+                    >
+                      <Ban className="size-4" />
+                      {locale === "ru" ? "Заблокировать" : "Block user"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -341,6 +453,46 @@ export function PublicProfileClient({
         {heatmapHasData && (
           <div className="mt-5">
             <Heatmap weeks={12} data={heatmap} />
+          </div>
+        )}
+
+        {/* Recent achievements */}
+        {user.recentAchievements.length > 0 && (
+          <div className="mt-5 surface p-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-lg font-semibold flex items-center gap-2">
+                <Award className="size-4 text-accent-orange" />
+                {locale === "ru"
+                  ? "Последние ачивки"
+                  : "Recent achievements"}
+              </h2>
+              <span className="text-xs text-ink-muted">
+                {user.achievementsCount} /{" "}
+                {locale === "ru" ? "всего" : "total"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {user.recentAchievements.map((a) => {
+                const tone = TIER_TONE[a.tier] ?? TIER_TONE.BRONZE;
+                return (
+                  <div
+                    key={a.slug}
+                    className={`relative rounded-2xl border bg-white/[0.02] p-3 flex flex-col items-center text-center gap-1 ${tone}`}
+                    title={`+${a.rewardXp} XP · ×${a.count}`}
+                  >
+                    {a.count > 1 && (
+                      <div className="absolute top-2 right-2 text-[10px] font-bold px-1.5 h-5 rounded-full bg-lime/20 text-lime border border-lime/40 number-tabular">
+                        ×{a.count}
+                      </div>
+                    )}
+                    <div className="text-3xl">{a.icon}</div>
+                    <div className="text-xs font-medium leading-tight line-clamp-2">
+                      {locale === "ru" ? a.titleRu : a.titleEn}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -423,6 +575,12 @@ export function PublicProfileClient({
           </div>
         )}
       </div>
+      <ProfileQrModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        username={user.username ?? ""}
+        displayName={user.name}
+      />
     </section>
   );
 }
