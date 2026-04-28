@@ -5,6 +5,7 @@ import { SessionProvider } from "next-auth/react";
 
 import { I18nProvider } from "@/lib/i18n/provider";
 import { ToastProvider } from "@/components/ui/Toast";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 /**
  * App-wide providers.
@@ -18,7 +19,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider refetchInterval={60} refetchOnWindowFocus>
       <I18nProvider>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <InstallPrompt />
+        </ToastProvider>
       </I18nProvider>
     </SessionProvider>
   );

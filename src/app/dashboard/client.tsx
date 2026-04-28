@@ -10,7 +10,11 @@ import { QuickLog } from "@/components/dashboard/QuickLog";
 import { StreakCard } from "@/components/dashboard/StreakCard";
 import { LevelCard } from "@/components/dashboard/LevelCard";
 import { Heatmap } from "@/components/dashboard/Heatmap";
-import { ActivityFeed, type FeedRecord } from "@/components/dashboard/ActivityFeed";
+import {
+  ActivityFeed,
+  type FeedRecord,
+  type FeedMutationEvent,
+} from "@/components/dashboard/ActivityFeed";
 import {
   PersonalStats,
   type PersonalStatsData,
@@ -21,6 +25,7 @@ import { DailyTip } from "@/components/dashboard/DailyTip";
 import { StreakWarning } from "@/components/dashboard/StreakWarning";
 import { ShareTodayButton } from "@/components/dashboard/ShareTodayButton";
 import { FriendsFeed } from "@/components/dashboard/FriendsFeed";
+import { FriendSuggestions } from "@/components/dashboard/FriendSuggestions";
 import { EnergyTrend } from "@/components/dashboard/EnergyTrend";
 import { PersonalRecordsCard } from "@/components/dashboard/PersonalRecordsCard";
 import { InsightsCard } from "@/components/dashboard/InsightsCard";
@@ -219,6 +224,52 @@ export function DashboardClient({
     invalidateMyStreak();
   }
 
+  /**
+   * Handle delete / amount-edit on the activity feed. We optimistically
+   * update the local list and then sync the totals from the server
+   * (level, streak, xp can all shift after an edit).
+   */
+  function handleFeedMutated(event: FeedMutationEvent) {
+    setRecentRecords((rs) => {
+      if (event.kind === "delete") return rs.filter((r) => r.id !== event.id);
+      return rs.map((r) =>
+        r.id === event.id
+          ? { ...r, amount: event.amount, energy: event.energy, xp: event.xp }
+          : r,
+      );
+    });
+
+    setTotalEnergy(event.totals.totalEnergy);
+    setTotalXp(event.totals.totalXp);
+    setLevel(event.totals.level);
+    setStreak(event.totals.currentStreak);
+    setBestStreak(event.totals.bestStreak);
+
+    // Recompute today's tally from the now-mutated list.
+    setRecentRecords((rs) => {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      let e = 0;
+      let x = 0;
+      for (const r of rs) {
+        const ts =
+          typeof r.recordedAt === "string"
+            ? new Date(r.recordedAt)
+            : r.recordedAt;
+        if (ts.getTime() >= dayStart.getTime()) {
+          e += r.energy ?? 0;
+          x += r.xp ?? 0;
+        }
+      }
+      // We can't know `kcal` from feed records alone, so leave it
+      // unchanged — it's a derived display, not a streak driver.
+      setToday((cur) => ({ ...cur, energy: e, xp: x }));
+      return rs;
+    });
+
+    invalidateMyStreak();
+  }
+
   React.useEffect(() => {
     void initialLevelInfo;
   }, [initialLevelInfo]);
@@ -310,8 +361,12 @@ export function DashboardClient({
               }}
             />
             <FriendsFeed />
+            <FriendSuggestions />
             <MiniLeaderboard myUserId={user.id} />
-            <ActivityFeed records={recentRecords} />
+            <ActivityFeed
+              records={recentRecords}
+              onMutated={handleFeedMutated}
+            />
           </div>
         </div>
       </main>
