@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
 
@@ -24,6 +24,7 @@ interface AuthShellProps {
 export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
   const { t, locale } = useI18n();
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const search = useSearchParams();
   const isSignup = mode === "signup";
   const callbackUrl = search.get("from") ?? "/dashboard";
@@ -164,6 +165,9 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
         return;
       }
 
+      // Tell SessionProvider to refetch so the global header switches
+      // from "Sign in" to the user menu without a full reload.
+      await updateSession();
       router.push(isSignup ? "/onboarding" : callbackUrl);
       router.refresh();
     } catch (err) {

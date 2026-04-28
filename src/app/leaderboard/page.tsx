@@ -79,15 +79,27 @@ export default function LeaderboardPage() {
     <>
       <Header />
       <main className="container py-8 sm:py-10">
-        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-display-md sm:text-display-lg font-bold">
-              {t.leaderboard.title}
-            </h1>
-            <p className="text-ink-dim mt-2 max-w-2xl">{t.leaderboard.subtitle}</p>
-          </div>
-          {metric === "energy" && (
-            <div className="overflow-x-auto mask-fade-r">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-display text-display-md sm:text-display-lg font-bold">
+            {t.leaderboard.title}
+          </h1>
+          <p className="text-ink-dim mt-2 max-w-2xl">
+            {t.leaderboard.subtitle}
+          </p>
+        </div>
+
+        <div className="overflow-x-auto -mx-4 px-4 mask-fade-r">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Tabs<Metric>
+              items={[
+                { id: "energy", label: t.leaderboard.metricEnergy },
+                { id: "level", label: t.leaderboard.metricLevel },
+                { id: "xp", label: t.leaderboard.metricXp },
+              ]}
+              value={metric}
+              onChange={setMetric}
+            />
+            {metric === "energy" && (
               <Tabs<Range>
                 items={[
                   { id: "day", label: t.leaderboard.tabDay },
@@ -97,20 +109,8 @@ export default function LeaderboardPage() {
                 onChange={setRange}
                 size="sm"
               />
-            </div>
-          )}
-        </div>
-
-        <div className="overflow-x-auto -mx-4 px-4 mask-fade-r">
-          <Tabs<Metric>
-            items={[
-              { id: "energy", label: t.leaderboard.metricEnergy },
-              { id: "level", label: t.leaderboard.metricLevel },
-              { id: "xp", label: t.leaderboard.metricXp },
-            ]}
-            value={metric}
-            onChange={setMetric}
-          />
+            )}
+          </div>
         </div>
 
         <div className="mt-4 flex items-start gap-3 flex-wrap">

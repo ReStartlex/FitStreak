@@ -23,8 +23,10 @@ export default async function DashboardPage() {
   if (!user.onboarded) redirect("/onboarding");
 
   const today = startOfToday();
+  // Pull a full year of records — covers the 16-week and the 53-week
+  // heatmap, plus the 30-day energy trend, in one query.
   const monthStart = new Date(today);
-  monthStart.setDate(monthStart.getDate() - 16 * 7);
+  monthStart.setDate(monthStart.getDate() - 365);
   const weekStart = new Date(today);
   weekStart.setDate(weekStart.getDate() - 6);
 

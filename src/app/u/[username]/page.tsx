@@ -68,8 +68,10 @@ export default async function PublicProfilePage({
   today.setHours(0, 0, 0, 0);
   const weekStart = new Date(today);
   weekStart.setDate(weekStart.getDate() - 6);
+  // Pull a full year of activity in one query — the 12-week heatmap
+  // and the year heatmap both source from this map.
   const heatmapStart = new Date(today);
-  heatmapStart.setDate(heatmapStart.getDate() - 12 * 7 + 1);
+  heatmapStart.setDate(heatmapStart.getDate() - 365);
 
   // If the visitor blocked this profile (or vice versa) — pretend it
   // doesn't exist. Owners always see their own page.

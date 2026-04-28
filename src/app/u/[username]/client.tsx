@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { Heatmap } from "@/components/dashboard/Heatmap";
+import { YearHeatmap } from "@/components/dashboard/YearHeatmap";
 import { ProfileQrModal } from "@/components/social/ProfileQrModal";
 import { useI18n } from "@/lib/i18n/provider";
 
@@ -453,6 +454,13 @@ export function PublicProfileClient({
         {heatmapHasData && (
           <div className="mt-5">
             <Heatmap weeks={12} data={heatmap} />
+          </div>
+        )}
+
+        {/* Year heatmap */}
+        {heatmapHasData && (
+          <div className="mt-5">
+            <YearHeatmap data={heatmap} />
           </div>
         )}
 

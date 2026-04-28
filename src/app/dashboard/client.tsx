@@ -24,6 +24,8 @@ import { FriendsFeed } from "@/components/dashboard/FriendsFeed";
 import { EnergyTrend } from "@/components/dashboard/EnergyTrend";
 import { PersonalRecordsCard } from "@/components/dashboard/PersonalRecordsCard";
 import { InsightsCard } from "@/components/dashboard/InsightsCard";
+import { YearHeatmap } from "@/components/dashboard/YearHeatmap";
+import { invalidateMyStreak } from "@/lib/hooks/use-my-streak";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -209,6 +211,11 @@ export function DashboardClient({
       weekEnergy: (s.weekEnergy ?? 0) + recordEnergy,
       totalEnergy: json.totals.totalEnergy,
     }));
+
+    // Tell the global Header chip — and any other consumer of the
+    // streak/level via /api/me/streak — to refetch right now instead
+    // of waiting for the next 60s tick.
+    invalidateMyStreak();
   }
 
   React.useEffect(() => {
@@ -284,6 +291,7 @@ export function DashboardClient({
             <InsightsCard />
             <EnergyTrend data={heatmap} goal={user.dailyGoal} days={30} />
             <Heatmap weeks={16} data={heatmap} />
+            <YearHeatmap data={heatmap} />
             <PersonalRecordsCard />
             <PersonalStats data={pStats} />
             <AchievementsGrid limit={8} />

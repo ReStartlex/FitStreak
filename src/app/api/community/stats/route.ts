@@ -176,9 +176,12 @@ export async function GET() {
       },
       {
         headers: {
-          // Surrogate key for fastly-style CDNs; harmless on Vercel.
-          "Cache-Control":
-            "public, s-maxage=60, stale-while-revalidate=300",
+          // The response carries `me` derived from the auth cookie, so
+          // it MUST NOT live in a shared CDN cache (otherwise user A's
+          // data would leak to user B). Browser-private cache is fine
+          // for ~15s — the hook also re-fetches on focus/visibility.
+          "Cache-Control": "private, max-age=15",
+          Vary: "Cookie",
         },
       },
     );
