@@ -17,6 +17,8 @@ import {
 } from "@/components/dashboard/PersonalStats";
 import { AchievementsGrid } from "@/components/dashboard/AchievementsGrid";
 import { MiniLeaderboard } from "@/components/dashboard/MiniLeaderboard";
+import { DailyTip } from "@/components/dashboard/DailyTip";
+import { StreakWarning } from "@/components/dashboard/StreakWarning";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -246,6 +248,14 @@ export function DashboardClient({
           </div>
         </div>
 
+        <div className="mb-5 empty:hidden">
+          <StreakWarning
+            streak={streak}
+            todayEnergy={today.energy}
+            freezes={streakFreezes}
+          />
+        </div>
+
         <div className="grid gap-5 lg:grid-cols-12">
           <div className="lg:col-span-8 flex flex-col gap-5">
             <TodayCard
@@ -257,6 +267,7 @@ export function DashboardClient({
             <QuickLog
               onAdd={(exId, amt, e, x) => handleAdd(exId, amt, e, x)}
             />
+            <DailyTip />
             <Heatmap weeks={16} data={heatmap} />
             <PersonalStats data={pStats} />
             <AchievementsGrid limit={8} />

@@ -20,17 +20,21 @@ export function Section({
   ...props
 }: SectionProps) {
   return (
-    <section className={cn("relative py-20 sm:py-28", className)} {...props}>
+    <section
+      className={cn("relative py-14 sm:py-20 lg:py-28", className)}
+      {...props}
+    >
       <div className={cn("container", containerClassName)}>
         {(eyebrow || title || subtitle) && (
           <header
             className={cn(
-              "max-w-3xl mb-10 sm:mb-14 flex flex-col gap-3",
+              "max-w-3xl mb-8 sm:mb-12 lg:mb-14 flex flex-col gap-3",
               align === "center" && "mx-auto text-center items-center",
             )}
           >
             {eyebrow && (
-              <span className="chip self-start data-[align=center]:self-center"
+              <span
+                className="chip self-start data-[align=center]:self-center"
                 data-align={align}
               >
                 <span className="size-1.5 rounded-full bg-lime animate-pulse-soft" />

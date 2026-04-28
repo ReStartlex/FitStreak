@@ -6,6 +6,7 @@ import { Features } from "@/components/landing/Features";
 import { ChallengesShowcase } from "@/components/landing/ChallengesShowcase";
 import { ProgressShowcase } from "@/components/landing/ProgressShowcase";
 import { SocialShowcase } from "@/components/landing/SocialShowcase";
+import { TopStreaks } from "@/components/landing/TopStreaks";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { CtaBanner } from "@/components/landing/CtaBanner";
@@ -17,6 +18,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <CommunityCounter />
+        <TopStreaks />
         <Features />
         <ChallengesShowcase />
         <ProgressShowcase />

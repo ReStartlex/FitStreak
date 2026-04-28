@@ -6,13 +6,18 @@ import { Flame, Play, Sparkles, TrendingUp, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useI18n } from "@/lib/i18n/provider";
 import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
-import { COMMUNITY_TOTAL_TODAY } from "@/lib/mock/community";
+import { useCommunityStats } from "@/lib/hooks/use-community-stats";
+import { formatCompact } from "@/lib/format";
 
 export function Hero() {
   const { t, locale } = useI18n();
+  const { data: stats } = useCommunityStats();
+  const repsToday = stats?.today.totalAmount ?? 0;
+  const lifetimeEnergy = stats?.lifetime.totalEnergy ?? 0;
+  const activeUsers = stats?.community.activeUsers30d ?? 0;
 
   return (
-    <section className="relative pt-12 sm:pt-20 pb-20 sm:pb-28 overflow-hidden">
+    <section className="relative pt-8 sm:pt-16 pb-14 sm:pb-24 lg:pb-28 overflow-hidden">
       {/* Backdrop */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-radial-violet" />
@@ -21,9 +26,9 @@ export function Hero() {
       </div>
 
       <div className="container">
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 lg:gap-14 items-center">
+        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 sm:gap-10 lg:gap-14 items-center">
           {/* Left */}
-          <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-5 sm:gap-7">
             <motion.span
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -93,13 +98,19 @@ export function Hero() {
                   ))}
                 </div>
                 <span className="text-sm text-ink-dim">
-                  <span className="text-ink font-semibold">12k+</span>{" "}
-                  {locale === "ru" ? "уже в серии" : "already on a streak"}
+                  <span className="text-ink font-semibold number-tabular">
+                    {activeUsers > 0
+                      ? formatCompact(activeUsers, locale)
+                      : "—"}
+                  </span>{" "}
+                  {locale === "ru"
+                    ? "активны за 30 дней"
+                    : "active in last 30 days"}
                 </span>
               </div>
               <div className="text-sm text-ink-dim">
                 <span className="text-gradient-lime font-display font-bold text-lg number-tabular">
-                  <AnimatedNumber value={COMMUNITY_TOTAL_TODAY} locale={locale} />
+                  <AnimatedNumber value={repsToday} locale={locale} />
                 </span>{" "}
                 {locale === "ru"
                   ? "повторений сегодня"
@@ -107,9 +118,12 @@ export function Hero() {
               </div>
               <div className="text-sm text-ink-dim">
                 <span className="text-gradient-lime font-display font-bold text-lg number-tabular">
-                  4.1M
+                  {lifetimeEnergy > 0
+                    ? formatCompact(lifetimeEnergy, locale)
+                    : "—"}
                 </span>{" "}
-                {t.scoring.energyShort} · {locale === "ru" ? "общий счёт" : "global"}
+                {t.scoring.energyShort} ·{" "}
+                {locale === "ru" ? "общий счёт" : "lifetime"}
               </div>
             </motion.div>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Crown, Medal, Trophy, Filter, Loader2 } from "lucide-react";
 
@@ -325,19 +326,8 @@ function LeaderRowItem({
         ? "XP"
         : t.scoring.energyShort;
 
-  return (
-    <motion.li
-      initial={{ opacity: 0, x: -8 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.25, delay: Math.min(0.5, index * 0.02) }}
-      className={cn(
-        "flex items-center gap-3 sm:gap-4 px-3 py-2.5 transition-colors",
-        row.isMe
-          ? "bg-lime/8 border border-lime/30 rounded-xl"
-          : "hover:bg-white/[0.03] rounded-xl",
-      )}
-    >
+  const inner = (
+    <>
       <span className="number-tabular w-8 text-center text-ink-muted text-sm font-medium">
         #{row.rank}
       </span>
@@ -390,6 +380,31 @@ function LeaderRowItem({
           </span>
         </div>
       </div>
+    </>
+  );
+
+  const className = cn(
+    "flex items-center gap-3 sm:gap-4 px-3 py-2.5 transition-colors",
+    row.isMe
+      ? "bg-lime/8 border border-lime/30 rounded-xl"
+      : "hover:bg-white/[0.03] rounded-xl",
+  );
+
+  return (
+    <motion.li
+      initial={{ opacity: 0, x: -8 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.25, delay: Math.min(0.5, index * 0.02) }}
+      className="list-none"
+    >
+      {row.username ? (
+        <Link href={`/u/${row.username}`} className={className}>
+          {inner}
+        </Link>
+      ) : (
+        <div className={className}>{inner}</div>
+      )}
     </motion.li>
   );
 }
