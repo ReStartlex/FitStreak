@@ -2,11 +2,26 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Flame, Trophy, Zap, Calendar, Activity, Settings, Crown } from "lucide-react";
+import {
+  Flame,
+  Trophy,
+  Zap,
+  Calendar,
+  Activity,
+  Settings,
+  Crown,
+  UserPlus,
+  UserCheck,
+  Share2,
+  Loader2,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
+import { Heatmap } from "@/components/dashboard/Heatmap";
 import { useI18n } from "@/lib/i18n/provider";
 import { formatNumber } from "@/lib/format";
 import { getExerciseName, getExercise } from "@/lib/mock/exercises";
@@ -35,16 +50,99 @@ interface PublicUser {
 export function PublicProfileClient({
   user,
   isSelf,
+  isAuthed,
+  initialFollowing,
+  heatmap,
 }: {
   user: PublicUser;
   isSelf: boolean;
+  isAuthed: boolean;
+  initialFollowing: boolean;
+  heatmap: Record<string, number>;
 }) {
   const { t, locale } = useI18n();
+  const router = useRouter();
+  const toast = useToast();
   const lvl = getLevelInfo(user.totalXp);
   const memberSince = new Date(user.joinedAt).toLocaleDateString(
     locale === "ru" ? "ru-RU" : "en-US",
     { month: "short", year: "numeric" },
   );
+
+  const [following, setFollowing] = React.useState(initialFollowing);
+  const [followPending, setFollowPending] = React.useState(false);
+  const [shared, setShared] = React.useState(false);
+
+  const heatmapHasData = React.useMemo(
+    () => Object.values(heatmap).some((v) => v > 0),
+    [heatmap],
+  );
+
+  async function toggleFollow() {
+    if (!isAuthed) {
+      router.push(
+        `/signin?from=${encodeURIComponent(`/u/${user.username ?? ""}`)}`,
+      );
+      return;
+    }
+    setFollowPending(true);
+    const method = following ? "DELETE" : "POST";
+    try {
+      const res = await fetch(`/api/follow/${user.id}`, { method });
+      if (res.ok) {
+        setFollowing((v) => !v);
+        toast(
+          following
+            ? locale === "ru"
+              ? `Отписался от ${user.name}`
+              : `Unfollowed ${user.name}`
+            : locale === "ru"
+              ? `Подписан на ${user.name}`
+              : `Following ${user.name}`,
+          { tone: "success" },
+        );
+      } else {
+        toast(
+          locale === "ru" ? "Не получилось" : "Something went wrong",
+          { tone: "error" },
+        );
+      }
+    } catch {
+      toast(
+        locale === "ru" ? "Сеть недоступна" : "Network unavailable",
+        { tone: "error" },
+      );
+    } finally {
+      setFollowPending(false);
+    }
+  }
+
+  async function shareProfile() {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/u/${user.username ?? ""}`
+        : "";
+    const title = `${user.name} · FitStreak`;
+    const text =
+      locale === "ru"
+        ? `${user.name} держит серию ${user.currentStreak} дн. на FitStreak.`
+        : `${user.name} is on a ${user.currentStreak}-day streak on FitStreak.`;
+    try {
+      if (typeof navigator !== "undefined" && "share" in navigator) {
+        await (navigator as Navigator).share({ title, text, url });
+        return;
+      }
+    } catch {
+      // user cancelled the native sheet — silently fall back to copy
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      window.setTimeout(() => setShared(false), 1800);
+    } catch {
+      // last resort: ignore
+    }
+  }
 
   return (
     <section className="relative pt-10 sm:pt-16 pb-16 sm:pb-24">
@@ -104,14 +202,52 @@ export function PublicProfileClient({
               </Badge>
             </div>
           </div>
-          {isSelf && (
-            <Link href="/settings" className="self-stretch sm:self-center">
-              <Button variant="secondary" className="gap-2 w-full sm:w-auto">
-                <Settings className="size-4" />
-                {t.nav.settings}
+          <div className="flex flex-row sm:flex-col gap-2 self-stretch sm:self-center w-full sm:w-auto">
+            {isSelf ? (
+              <Link href="/settings" className="flex-1 sm:flex-none">
+                <Button variant="secondary" className="gap-2 w-full sm:w-auto">
+                  <Settings className="size-4" />
+                  {t.nav.settings}
+                </Button>
+              </Link>
+            ) : (
+              <Button
+                variant={following ? "secondary" : "primary"}
+                onClick={toggleFollow}
+                disabled={followPending}
+                className="gap-2 flex-1 sm:flex-none"
+              >
+                {followPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : following ? (
+                  <UserCheck className="size-4" />
+                ) : (
+                  <UserPlus className="size-4" />
+                )}
+                {following
+                  ? locale === "ru"
+                    ? "Подписан"
+                    : "Following"
+                  : locale === "ru"
+                    ? "Подписаться"
+                    : "Follow"}
               </Button>
-            </Link>
-          )}
+            )}
+            <Button
+              variant="ghost"
+              onClick={shareProfile}
+              className="gap-2 flex-1 sm:flex-none"
+            >
+              <Share2 className="size-4" />
+              {shared
+                ? locale === "ru"
+                  ? "Скопировано"
+                  : "Copied"
+                : locale === "ru"
+                  ? "Поделиться"
+                  : "Share"}
+            </Button>
+          </div>
         </motion.div>
 
         {/* Stats grid */}
@@ -171,6 +307,13 @@ export function PublicProfileClient({
             amount={user.weekAmount}
           />
         </div>
+
+        {/* Heatmap (12 weeks) */}
+        {heatmapHasData && (
+          <div className="mt-5">
+            <Heatmap weeks={12} data={heatmap} />
+          </div>
+        )}
 
         {/* Top exercises */}
         <div className="mt-5 surface p-5 sm:p-6">

@@ -138,6 +138,22 @@ export function Hero() {
 
 function HeroVisual() {
   const { t, locale } = useI18n();
+  const { data: stats } = useCommunityStats();
+  const me = stats?.me ?? null;
+
+  // When the visitor is signed in, show real stats; otherwise the
+  // marketing-friendly demo numbers stay as a product preview.
+  const displayName = me?.name?.split(" ")[0] ?? (locale === "ru" ? "Алекс" : "Alex");
+  const streak = me?.currentStreak ?? 17;
+  const todayEnergy = me?.todayEnergy ?? 286;
+  const dailyGoal = me?.dailyGoal ?? 400;
+  const level = me?.level ?? 14;
+  const todayKcal = me?.todayKcal ?? 348;
+  const goalPct =
+    dailyGoal > 0
+      ? Math.min(100, Math.round((todayEnergy / dailyGoal) * 100))
+      : 0;
+  const xpProgress = me?.levelProgressPct ?? 71;
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97, y: 16 }}
@@ -175,17 +191,19 @@ function HeroVisual() {
         <div className="relative rounded-[2.2rem] border border-line-strong bg-bg-card/80 p-3 shadow-soft backdrop-blur-2xl">
           <div className="rounded-[1.6rem] border border-line bg-bg-soft/80 p-5 sm:p-6 overflow-hidden">
             <div className="flex items-center justify-between">
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <span className="text-xs text-ink-muted uppercase tracking-widest">
                   {t.dashboard.todayTitle}
                 </span>
-                <span className="font-display text-xl font-semibold mt-1">
-                  {locale === "ru" ? "Привет, Алекс" : "Hi, Alex"}
+                <span className="font-display text-xl font-semibold mt-1 truncate">
+                  {locale === "ru" ? `Привет, ${displayName}` : `Hi, ${displayName}`}
                 </span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-line bg-bg/60 px-3 py-1.5">
                 <Flame className="size-4 text-accent-orange animate-flame" />
-                <span className="text-sm font-semibold number-tabular">17</span>
+                <span className="text-sm font-semibold number-tabular">
+                  {streak}
+                </span>
                 <span className="text-xs text-ink-dim">
                   {locale === "ru" ? "д" : "d"}
                 </span>
@@ -198,27 +216,29 @@ function HeroVisual() {
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="font-display text-5xl font-bold tracking-tight text-gradient-lime number-tabular">
-                  286
+                  {todayEnergy}
                 </span>
-                <span className="text-ink-muted text-sm">/ 400 {t.scoring.energyShort}</span>
+                <span className="text-ink-muted text-sm">
+                  / {dailyGoal} {t.scoring.energyShort}
+                </span>
               </div>
               <div className="mt-3 h-3 rounded-full overflow-hidden bg-white/[0.06] border border-line">
                 <motion.div
                   initial={{ width: "0%" }}
-                  animate={{ width: "71%" }}
+                  animate={{ width: `${goalPct}%` }}
                   transition={{ duration: 1.2, delay: 0.5 }}
                   className="h-full bg-lime-gradient shadow-glow"
                 />
               </div>
               <div className="mt-3 flex items-center gap-2 text-[11px] text-ink-muted">
                 <span className="rounded-full border border-violet/40 bg-violet/15 text-violet-soft font-display font-semibold px-2 py-0.5">
-                  lv 14
+                  lv {level}
                 </span>
                 <span className="rounded-full border border-lime/40 bg-lime/15 text-lime font-display font-semibold px-2 py-0.5">
-                  +412 XP
+                  {xpProgress}% xp
                 </span>
                 <span className="rounded-full border border-accent-orange/40 bg-accent-orange/15 text-accent-orange font-display font-semibold px-2 py-0.5">
-                  ≈ 348 {locale === "ru" ? "ккал" : "kcal"}
+                  ≈ {todayKcal} {locale === "ru" ? "ккал" : "kcal"}
                 </span>
               </div>
             </div>

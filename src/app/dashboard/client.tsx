@@ -19,6 +19,7 @@ import { AchievementsGrid } from "@/components/dashboard/AchievementsGrid";
 import { MiniLeaderboard } from "@/components/dashboard/MiniLeaderboard";
 import { DailyTip } from "@/components/dashboard/DailyTip";
 import { StreakWarning } from "@/components/dashboard/StreakWarning";
+import { ShareTodayButton } from "@/components/dashboard/ShareTodayButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import {
@@ -33,6 +34,7 @@ interface UserCtx {
   id: string;
   name: string;
   email: string;
+  username: string | null;
   image: string | null;
   currentStreak: number;
   bestStreak: number;
@@ -245,6 +247,13 @@ export function DashboardClient({
             <Badge variant="default">
               🔥 {streak} {locale === "ru" ? "д" : "d"}
             </Badge>
+            <ShareTodayButton
+              todayEnergy={today.energy}
+              todayXp={today.xp}
+              streak={streak}
+              goal={user.dailyGoal}
+              username={user.username}
+            />
           </div>
         </div>
 

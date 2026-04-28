@@ -23,6 +23,14 @@ export interface CommunityStatsResponse {
     activeUsers30d: number;
   };
   me: {
+    name: string | null;
+    username: string | null;
+    image: string | null;
+    level: number;
+    currentStreak: number;
+    bestStreak: number;
+    levelProgressPct: number;
+    dailyGoal: number;
     todayAmount: number;
     todayEnergy: number;
     todayKcal: number;

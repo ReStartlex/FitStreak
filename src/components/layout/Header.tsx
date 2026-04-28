@@ -4,18 +4,20 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, ArrowUpRight, LogOut, Settings, UserRound } from "lucide-react";
+import { Menu, X, ArrowUpRight, Flame, LogOut, Settings, UserRound } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
 import { LocaleSwitch } from "./LocaleSwitch";
 import { useI18n } from "@/lib/i18n/provider";
+import { useMyStreak } from "@/lib/hooks/use-my-streak";
 import { cn } from "@/lib/cn";
 
 export function Header() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isAuthed = status === "authenticated" && Boolean(session?.user);
+  const { data: myStreak } = useMyStreak();
   const [scrolled, setScrolled] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -93,7 +95,34 @@ export function Header() {
           {status === "loading" ? (
             <div className="size-9 rounded-full bg-white/[0.04] border border-line animate-pulse" />
           ) : isAuthed ? (
-            <div className="relative" ref={menuRef}>
+            <div className="flex items-center gap-2">
+              {myStreak && myStreak.currentStreak > 0 && (
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    "hidden lg:inline-flex items-center gap-1 h-9 px-3 rounded-full border text-xs font-semibold tabular-nums transition-colors",
+                    myStreak.currentStreak >= 100
+                      ? "border-accent-rose/50 bg-accent-rose/15 text-accent-rose"
+                      : myStreak.currentStreak >= 30
+                        ? "border-accent-orange/50 bg-accent-orange/15 text-accent-orange"
+                        : myStreak.currentStreak >= 7
+                          ? "border-lime/50 bg-lime/15 text-lime"
+                          : "border-line bg-white/[0.04] text-ink-dim",
+                  )}
+                  title={
+                    locale === "ru"
+                      ? `Серия ${myStreak.currentStreak} дн.`
+                      : `${myStreak.currentStreak}-day streak`
+                  }
+                >
+                  <Flame className="size-3.5 animate-flame" />
+                  {myStreak.currentStreak}
+                  <span className="opacity-70 font-normal">
+                    {locale === "ru" ? "д" : "d"}
+                  </span>
+                </Link>
+              )}
+              <div className="relative" ref={menuRef}>
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
@@ -153,6 +182,7 @@ export function Header() {
                   </button>
                 </div>
               )}
+              </div>
             </div>
           ) : (
             <>

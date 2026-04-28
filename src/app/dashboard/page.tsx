@@ -88,6 +88,7 @@ export default async function DashboardPage() {
         id: user.id,
         name: user.name ?? user.email.split("@")[0],
         email: user.email,
+        username: user.username,
         image: user.image,
         currentStreak: user.currentStreak,
         bestStreak: user.bestStreak,

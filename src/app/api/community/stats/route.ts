@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { ok, serverError } from "@/lib/api/response";
+import { calcDailyGoal } from "@/lib/goals";
+import { getLevelInfo } from "@/lib/leveling";
 
 export const runtime = "nodejs";
 // Always render on-demand because the response varies per signed-in user
@@ -47,6 +49,7 @@ export async function GET() {
       lifetimeAgg,
       activeCount,
       myTodayAgg,
+      myUser,
     ] = await Promise.all([
       db.activityRecord.groupBy({
         by: ["exerciseId"],
@@ -73,6 +76,25 @@ export async function GET() {
         ? db.activityRecord.aggregate({
             where: { userId: myId, recordedAt: { gte: today } },
             _sum: { amount: true, energy: true, kcal: true },
+          })
+        : Promise.resolve(null),
+      myId
+        ? db.user.findUnique({
+            where: { id: myId },
+            select: {
+              name: true,
+              username: true,
+              image: true,
+              currentStreak: true,
+              bestStreak: true,
+              level: true,
+              totalXp: true,
+              fitnessLevel: true,
+              age: true,
+              gender: true,
+              goal: true,
+              weightKg: true,
+            },
           })
         : Promise.resolve(null),
     ]);
@@ -127,8 +149,24 @@ export async function GET() {
         community: {
           activeUsers30d: activeCount,
         },
-        me: myId
+        me: myId && myUser
           ? {
+              name: myUser.name,
+              username: myUser.username,
+              image: myUser.image,
+              level: myUser.level,
+              currentStreak: myUser.currentStreak,
+              bestStreak: myUser.bestStreak,
+              levelProgressPct: Math.round(
+                getLevelInfo(myUser.totalXp).progress,
+              ),
+              dailyGoal: calcDailyGoal({
+                fitnessLevel: myUser.fitnessLevel,
+                age: myUser.age,
+                gender: myUser.gender,
+                goal: myUser.goal,
+                weightKg: myUser.weightKg,
+              }),
               todayAmount: myTodayAgg?._sum.amount ?? 0,
               todayEnergy: myTodayAgg?._sum.energy ?? 0,
               todayKcal: myTodayAgg?._sum.kcal ?? 0,

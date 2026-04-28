@@ -64,29 +64,56 @@ export default async function PublicProfilePage({
   today.setHours(0, 0, 0, 0);
   const weekStart = new Date(today);
   weekStart.setDate(weekStart.getDate() - 6);
+  const heatmapStart = new Date(today);
+  heatmapStart.setDate(heatmapStart.getDate() - 12 * 7 + 1);
 
-  const [todayAgg, weekAgg, topExercises, achievementsCount, energyRank] =
-    await Promise.all([
-      db.activityRecord.aggregate({
-        where: { userId: user.id, recordedAt: { gte: today } },
-        _sum: { energy: true, amount: true },
-      }),
-      db.activityRecord.aggregate({
-        where: { userId: user.id, recordedAt: { gte: weekStart } },
-        _sum: { energy: true, amount: true },
-      }),
-      db.activityRecord.groupBy({
-        by: ["exerciseId"],
-        where: { userId: user.id },
-        _sum: { amount: true, energy: true },
-        orderBy: { _sum: { energy: "desc" } },
-        take: 5,
-      }),
-      db.userAchievement.count({ where: { userId: user.id } }),
-      db.user.count({
-        where: { totalEnergy: { gt: user.totalEnergy } },
-      }),
-    ]);
+  const [
+    todayAgg,
+    weekAgg,
+    topExercises,
+    achievementsCount,
+    energyRank,
+    heatmapRows,
+    isFollowingRow,
+  ] = await Promise.all([
+    db.activityRecord.aggregate({
+      where: { userId: user.id, recordedAt: { gte: today } },
+      _sum: { energy: true, amount: true },
+    }),
+    db.activityRecord.aggregate({
+      where: { userId: user.id, recordedAt: { gte: weekStart } },
+      _sum: { energy: true, amount: true },
+    }),
+    db.activityRecord.groupBy({
+      by: ["exerciseId"],
+      where: { userId: user.id },
+      _sum: { amount: true, energy: true },
+      orderBy: { _sum: { energy: "desc" } },
+      take: 5,
+    }),
+    db.userAchievement.count({ where: { userId: user.id } }),
+    db.user.count({
+      where: { totalEnergy: { gt: user.totalEnergy } },
+    }),
+    db.activityRecord.findMany({
+      where: { userId: user.id, recordedAt: { gte: heatmapStart } },
+      select: { recordedAt: true, energy: true },
+    }),
+    me && me !== user.id
+      ? db.follow.findUnique({
+          where: {
+            followerId_followingId: { followerId: me, followingId: user.id },
+          },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  const heatmap: Record<string, number> = {};
+  for (const r of heatmapRows) {
+    const key = r.recordedAt.toISOString().slice(0, 10);
+    heatmap[key] = (heatmap[key] ?? 0) + r.energy;
+  }
 
   return (
     <>
@@ -117,6 +144,9 @@ export default async function PublicProfilePage({
             })),
           }}
           isSelf={me === user.id}
+          isAuthed={Boolean(me)}
+          initialFollowing={Boolean(isFollowingRow)}
+          heatmap={heatmap}
         />
       </main>
       <Footer />
