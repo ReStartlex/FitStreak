@@ -166,7 +166,7 @@ export function ForgotPasswordClient() {
                 type="email"
                 value={email}
                 onChange={setEmail}
-                placeholder="you@fitstreak.app"
+                placeholder="you@fitstreak.ru"
                 required
                 autoComplete="email"
               />

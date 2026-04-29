@@ -288,7 +288,7 @@ export function AuthShell({ mode, enabledProviders }: AuthShellProps) {
               <Field
                 label={t.auth.email}
                 type="email"
-                placeholder="you@fitstreak.app"
+                placeholder="you@fitstreak.ru"
                 value={email}
                 onChange={setEmail}
                 autoComplete="email"

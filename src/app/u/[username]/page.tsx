@@ -5,6 +5,13 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { buildMetadata } from "@/lib/seo/metadata";
+import {
+  JsonLd,
+  breadcrumbSchema,
+  profilePageSchema,
+} from "@/lib/seo/jsonld";
+import { absoluteUrl } from "@/lib/site";
 
 import { PublicProfileClient } from "./client";
 
@@ -20,14 +27,40 @@ export async function generateMetadata({
   const { username } = await params;
   const user = await db.user.findUnique({
     where: { username: username.toLowerCase() },
-    select: { name: true, username: true, currentStreak: true, level: true },
+    select: {
+      name: true,
+      username: true,
+      currentStreak: true,
+      bestStreak: true,
+      level: true,
+      isPublic: true,
+    },
   });
-  if (!user) return { title: "Profile not found — FitStreak" };
+  if (!user) {
+    return buildMetadata({
+      title: "Профиль не найден",
+      description: "Запрошенный профиль FitStreak не существует или был удалён.",
+      path: `/u/${username}`,
+      noIndex: true,
+    });
+  }
   const display = user.name ?? user.username ?? "Athlete";
-  return {
-    title: `${display} — FitStreak`,
-    description: `${display} · level ${user.level} · streak ${user.currentStreak}.`,
-  };
+  const handle = user.username ?? username;
+  return buildMetadata({
+    title: `${display} (@${handle}) — FitStreak`,
+    description: `${display} — уровень ${user.level}, серия ${user.currentStreak} дн. (рекорд ${user.bestStreak}). Смотри активность и достижения на FitStreak.`,
+    path: `/u/${handle}`,
+    ogType: "profile",
+    ogImage: absoluteUrl(`/u/${handle}/opengraph-image`),
+    noIndex: !user.isPublic,
+    keywords: [
+      `${display} fitstreak`,
+      `@${handle}`,
+      "fitness profile",
+      "athlete streak",
+      "fitstreak athlete",
+    ],
+  });
 }
 
 export default async function PublicProfilePage({
@@ -160,8 +193,30 @@ export default async function PublicProfilePage({
     heatmap[key] = (heatmap[key] ?? 0) + r.energy;
   }
 
+  const display = user.name ?? user.username ?? "Athlete";
+  const handle = user.username ?? normalized;
+
   return (
     <>
+      <JsonLd
+        id="ld-profile-breadcrumbs"
+        data={breadcrumbSchema([
+          { name: "FitStreak", url: "/" },
+          { name: "Athletes", url: "/leaderboard" },
+          { name: `@${handle}`, url: `/u/${handle}` },
+        ])}
+      />
+      <JsonLd
+        id="ld-profile-page"
+        data={profilePageSchema({
+          username: handle,
+          displayName: display,
+          level: user.level,
+          currentStreak: user.currentStreak,
+          bestStreak: user.bestStreak,
+          joinedAt: user.createdAt.toISOString(),
+        })}
+      />
       <Header />
       <main>
         <PublicProfileClient

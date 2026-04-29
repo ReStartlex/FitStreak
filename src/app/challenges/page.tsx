@@ -6,10 +6,23 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ChallengesClient } from "./client";
 import type { ApiChallengeView } from "@/components/challenges/ApiChallengeCard";
+import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Challenges — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Челленджи FitStreak — отжимания, бег, приседания",
+  description:
+    "Открытые и приватные челленджи FitStreak: 30 дней отжиманий, недельный бег, дуэли с друзьями. Присоединяйся к любому за один клик.",
+  path: "/challenges",
+  keywords: [
+    "fitstreak челленджи",
+    "fitstreak challenges",
+    "30 day push up challenge",
+    "running challenge",
+    "челлендж приседаний",
+    "челлендж бег 7 дней",
+    "fitness challenge online",
+  ],
+});
 
 export const dynamic = "force-dynamic";
 

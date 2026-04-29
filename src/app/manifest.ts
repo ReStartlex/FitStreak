@@ -1,19 +1,23 @@
 import type { MetadataRoute } from "next";
+import { siteConfig } from "@/lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "FitStreak — Streak. Show up. Every day.",
-    short_name: "FitStreak",
-    description:
-      "FitStreak — социальная платформа ежедневной активности. Серия дней, челленджи, рейтинги.",
-    start_url: "/dashboard",
+    id: "/?source=pwa",
+    name: `${siteConfig.name} — ${siteConfig.tagline.ru}`,
+    short_name: siteConfig.name,
+    description: siteConfig.description.ru,
+    start_url: "/dashboard?source=pwa",
     scope: "/",
     display: "standalone",
+    display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
     orientation: "portrait",
     background_color: "#0A0A0B",
     theme_color: "#0A0A0B",
-    categories: ["fitness", "lifestyle", "health", "sports"],
+    categories: ["fitness", "lifestyle", "health", "sports", "productivity"],
     lang: "ru",
+    dir: "ltr",
+    prefer_related_applications: false,
     icons: [
       {
         src: "/icon",

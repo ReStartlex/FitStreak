@@ -4,10 +4,14 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { RemindersClient } from "./client";
+import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Reminders — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Напоминания",
+  description: "Расписание напоминаний FitStreak: push, email и тихие часы.",
+  path: "/reminders",
+  noIndex: true,
+});
 
 export default async function RemindersPage() {
   const session = await auth();

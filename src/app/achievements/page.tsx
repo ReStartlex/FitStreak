@@ -6,10 +6,14 @@ import { Footer } from "@/components/layout/Footer";
 import { AchievementsGrid } from "@/components/dashboard/AchievementsGrid";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { buildMetadata } from "@/lib/seo/metadata";
 
-export const metadata: Metadata = {
-  title: "Achievements — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Ачивки",
+  description: "Все бейджи FitStreak: бронза, серебро, золото, элита и легенда.",
+  path: "/achievements",
+  noIndex: true,
+});
 
 export const dynamic = "force-dynamic";
 

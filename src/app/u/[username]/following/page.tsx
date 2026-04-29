@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { PaginatedUserList } from "@/components/social/PaginatedUserList";
 import { getBlockedSets } from "@/lib/api/blocks";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 interface Params {
   username: string;
@@ -20,7 +21,12 @@ export async function generateMetadata({
   params: Promise<Params>;
 }): Promise<Metadata> {
   const { username } = await params;
-  return { title: `@${username} · following — FitStreak` };
+  return buildMetadata({
+    title: `@${username} · following`,
+    description: `На кого подписан @${username} в FitStreak.`,
+    path: `/u/${username}/following`,
+    noIndex: true,
+  });
 }
 
 export default async function FollowingPage({

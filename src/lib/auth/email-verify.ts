@@ -2,6 +2,7 @@ import { createHash, randomInt } from "node:crypto";
 
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { siteConfig } from "@/lib/site";
 
 /**
  * Email-verification 6-digit codes.
@@ -179,7 +180,7 @@ function renderHtml({
   locale: "ru" | "en";
   appUrl?: string;
 }): string {
-  const url = appUrl ?? env.NEXT_PUBLIC_APP_URL ?? "https://fitstreak.app";
+  const url = appUrl ?? siteConfig.url;
   const t =
     locale === "ru"
       ? {

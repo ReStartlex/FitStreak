@@ -5,12 +5,16 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 import { SettingsClient } from "./client";
 
-export const metadata: Metadata = {
-  title: "Settings — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Настройки",
+  description: "Профиль, приватность, уведомления, язык и темы FitStreak.",
+  path: "/settings",
+  noIndex: true,
+});
 
 export const dynamic = "force-dynamic";
 

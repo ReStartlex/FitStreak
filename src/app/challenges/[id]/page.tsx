@@ -7,12 +7,16 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
 import { ChallengeDetailClient } from "./client";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Challenge — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Челлендж — FitStreak",
+  description:
+    "Подробная страница челленджа FitStreak: правила, участники, прогресс и лидерборд.",
+  path: "/challenges",
+});
 
 export default async function ChallengeDetailPage({
   params,

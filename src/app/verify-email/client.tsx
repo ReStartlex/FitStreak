@@ -169,7 +169,7 @@ export function VerifyEmailClient() {
                   required
                   autoComplete="email"
                   className="h-11 rounded-xl border border-line bg-white/[0.03] px-3.5 text-ink placeholder:text-ink-muted/60 focus:border-lime/50 outline-none"
-                  placeholder="you@fitstreak.app"
+                  placeholder="you@fitstreak.ru"
                 />
               </label>
             )}

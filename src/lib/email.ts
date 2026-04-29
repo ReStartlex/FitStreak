@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { siteConfig } from "@/lib/site";
 
 interface SendOpts {
   to: string;
@@ -81,7 +82,7 @@ export function brandedEmailHtml(
   subject: string,
   t: BrandedTemplate,
 ): string {
-  const url = env.NEXT_PUBLIC_APP_URL ?? "https://fitstreak.ru";
+  const url = siteConfig.url;
   const cta =
     t.ctaLabel && t.ctaHref
       ? `<a href="${t.ctaHref}" style="display:inline-block;margin-top:18px;padding:12px 22px;border-radius:12px;background:#bdfb4d;color:#0a0c0d;font-weight:700;text-decoration:none;">${t.ctaLabel}</a>`

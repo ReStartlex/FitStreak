@@ -86,7 +86,7 @@ export default function OG() {
           }}
         >
           <div style={{ display: "flex", gap: 28 }}>
-            <span>fitstreak.app</span>
+            <span>fitstreak.ru</span>
             <span>·</span>
             <span>Energy · XP · 100 levels</span>
           </div>

@@ -6,12 +6,16 @@ import { db } from "@/lib/db";
 import { startOfToday, getTodayTotals, userToBodyMetrics } from "@/lib/api/activity-service";
 import { getLevelInfo } from "@/lib/leveling";
 import { calcDailyGoal } from "@/lib/goals";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 import { DashboardClient } from "./client";
 
-export const metadata: Metadata = {
-  title: "Dashboard — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Dashboard",
+  description: "Личный кабинет FitStreak: серия дней, активности на сегодня, цель и прогресс уровня.",
+  path: "/dashboard",
+  noIndex: true,
+});
 
 export default async function DashboardPage() {
   const session = await auth();

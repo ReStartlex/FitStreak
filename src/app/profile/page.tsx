@@ -5,12 +5,16 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { startOfToday, userToBodyMetrics } from "@/lib/api/activity-service";
 import { activityBreakdown } from "@/lib/scoring";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 import { ProfileClient } from "./client";
 
-export const metadata: Metadata = {
-  title: "Profile — FitStreak",
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Мой профиль",
+  description: "Личный профиль FitStreak: серия, уровень, активности и достижения.",
+  path: "/profile",
+  noIndex: true,
+});
 
 export default async function ProfilePage() {
   const session = await auth();

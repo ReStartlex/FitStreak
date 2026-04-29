@@ -5,13 +5,16 @@ import { db } from "@/lib/db";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { isAdmin } from "@/lib/auth-admin";
+import { buildMetadata } from "@/lib/seo/metadata";
 
 import { AdminReportsClient } from "./client";
 
-export const metadata: Metadata = {
-  title: "Reports — Admin · FitStreak",
-  robots: { index: false, follow: false },
-};
+export const metadata: Metadata = buildMetadata({
+  title: "Reports — Admin",
+  description: "Internal moderation queue.",
+  path: "/admin/reports",
+  noIndex: true,
+});
 
 export const dynamic = "force-dynamic";
 
